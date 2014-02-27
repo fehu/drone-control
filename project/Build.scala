@@ -146,7 +146,15 @@ object  Build extends sbt.Build {
     base = file("matlab"),
     settings = buildSettings ++ serverBuildingSettings ++ Seq(
       libraryDependencies ++= Seq(feh.util, akka.actor, akka.remote),
-      unmanagedBase := file(MatlabPath + "/java/jar")
+      unmanagedBase := file(MatlabPath + "/java/jar"),
+      initialCommands in console :=
+        """
+          |import scala.concurrent.duration._
+          |import feh.tec.matlab.server.Default.system._
+          |import feh.tec.matlab._
+          |val cl = new feh.tec.matlab.MatlabClient(feh.tec.matlab.server.Default.sel)
+          |val sim = new DroneSimulation(PCorke.Model, cl, 1 second)
+        """.stripMargin
     )
   )
 

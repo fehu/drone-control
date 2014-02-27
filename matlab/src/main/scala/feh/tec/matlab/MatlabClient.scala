@@ -18,8 +18,11 @@ class MatlabClient(val server: ActorSelection)(implicit val execContext: Executi
   def feval(fname: String, args: List[Any], nReturn: Int)(implicit timeout: Timeout) =
     server ? MatlabServer.Feval(fname, args, nReturn) |> parseResult
 
-  protected def parseResult: Future[Any] => Future[Result] = _.map{
-    case r: Result => r
+  def startSim(name: String)(implicit timeout: Timeout) =
+    server ? MatlabServer.StartSim(name) |> parseResult
+
+  protected def parseResult: Future[Any] => Future[Array[Any]] = _.map{
+    case r: Result => r.arr
     case MatlabServer.Error(ex) => throw ex
   }
 }

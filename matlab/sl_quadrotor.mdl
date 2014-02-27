@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.30"
+    ComputedModelVersion    "1.42"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -23,15 +23,17 @@ Model {
   MaxMDLFileLineLength	  120
   InitFcn		  "% load parameters of the default quadrotor\ndisp('Quadrotor parameters loaded by InitFcn')\nmdl_quadcopt"
   "er"
+  StartFcn		  "% Get the full path to the S-function block\nblk = 'sl_quadrotor/Quadrotor plot';\n\n% Attach the event"
+  "-listener function to the S-function\nh   = add_exec_event_listener(blk, ...\n         'PostOutputs', @simExec);"
   Created		  "Sat Mar 20 12:13:00 2010"
   Creator		  "corkep"
   UpdateHistory		  "UpdateHistoryNever"
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "fehu"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Tue Feb 25 18:03:57 2014"
-  RTWModifiedTimeStamp	  315207876
-  ModelVersionFormat	  "1.%<AutoIncrement:30>"
+  LastModifiedDate	  "Thu Feb 27 01:54:33 2014"
+  RTWModifiedTimeStamp	  315364823
+  ModelVersionFormat	  "1.%<AutoIncrement:42>"
   ConfigurationManager	  "None"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -110,7 +112,7 @@ Model {
       Version		      "1.12.0"
       Array {
 	Type			"Handle"
-	Dimension		8
+	Dimension		9
 	Simulink.SolverCC {
 	  $ObjectID		  2
 	  Version		  "1.12.0"
@@ -181,19 +183,6 @@ Model {
 	Simulink.OptimizationCC {
 	  $ObjectID		  4
 	  Version		  "1.12.0"
-	  Array {
-	    Type		    "Cell"
-	    Dimension		    8
-	    Cell		    "BooleansAsBitfields"
-	    Cell		    "PassReuseOutputArgsAs"
-	    Cell		    "PassReuseOutputArgsThreshold"
-	    Cell		    "ZeroExternalMemoryAtStartup"
-	    Cell		    "ZeroInternalMemoryAtStartup"
-	    Cell		    "OptimizeModelRefInitCode"
-	    Cell		    "NoFixptDivByZeroProtection"
-	    Cell		    "UseSpecifiedMinMax"
-	    PropName		    "DisabledProps"
-	  }
 	  BlockReduction	  on
 	  BooleanDataType	  on
 	  ConditionallyExecuteInputs on
@@ -226,8 +215,8 @@ Model {
 	  NoFixptDivByZeroProtection off
 	  EfficientFloat2IntCast  off
 	  EfficientMapNaN2IntZero on
-	  OptimizeModelRefInitCode off
-	  LifeSpan		  "inf"
+	  OptimizeModelRefInitCode on
+	  LifeSpan		  "Inf"
 	  MaxStackSize		  "Inherit from target"
 	  BufferReusableBoundary  on
 	  SimCompilerOptimization "Off"
@@ -394,24 +383,16 @@ Model {
 	  Version		  "1.12.0"
 	  Array {
 	    Type		    "Cell"
-	    Dimension		    9
-	    Cell		    "IncludeHyperlinkInReport"
-	    Cell		    "GenerateTraceInfo"
-	    Cell		    "GenerateTraceReport"
-	    Cell		    "GenerateTraceReportSl"
-	    Cell		    "GenerateTraceReportSf"
-	    Cell		    "GenerateTraceReportEml"
-	    Cell		    "GenerateWebview"
-	    Cell		    "GenerateCodeMetricsReport"
-	    Cell		    "GenerateCodeReplacementReport"
+	    Dimension		    1
+	    Cell		    "TargetLang"
 	    PropName		    "DisabledProps"
 	  }
-	  SystemTargetFile	  "grt.tlc"
+	  SystemTargetFile	  "realtime.tlc"
 	  GenCodeOnly		  off
 	  MakeCommand		  "make_rtw"
-	  GenerateMakefile	  on
-	  TemplateMakefile	  "grt_default_tmf"
-	  Description		  "Generic Real-Time Target"
+	  GenerateMakefile	  off
+	  TemplateMakefile	  "realtime.tmf"
+	  Description		  "Real-Time Toolbox"
 	  GenerateReport	  off
 	  SaveLog		  off
 	  RTWVerbose		  off
@@ -422,7 +403,7 @@ Model {
 	  TLCAssert		  off
 	  ProcessScriptMode	  "Default"
 	  ConfigurationMode	  "Optimized"
-	  ProcessScript		  "grt_make_rtw_hook"
+	  ProcessScript		  "realtime_make_rtw_hook"
 	  ConfigAtBuild		  off
 	  RTWUseLocalCustomCode	  off
 	  RTWUseSimCustomCode	  off
@@ -449,35 +430,9 @@ Model {
 	    Simulink.CodeAppCC {
 	      $ObjectID		      10
 	      Version		      "1.12.0"
-	      Array {
-		Type			"Cell"
-		Dimension		21
-		Cell			"IgnoreCustomStorageClasses"
-		Cell			"IgnoreTestpoints"
-		Cell			"InsertBlockDesc"
-		Cell			"InsertPolySpaceComments"
-		Cell			"SFDataObjDesc"
-		Cell			"MATLABFcnDesc"
-		Cell			"SimulinkDataObjDesc"
-		Cell			"DefineNamingRule"
-		Cell			"SignalNamingRule"
-		Cell			"ParamNamingRule"
-		Cell			"InlinedPrmAccess"
-		Cell			"CustomSymbolStr"
-		Cell			"CustomSymbolStrGlobalVar"
-		Cell			"CustomSymbolStrType"
-		Cell			"CustomSymbolStrField"
-		Cell			"CustomSymbolStrFcn"
-		Cell			"CustomSymbolStrFcnArg"
-		Cell			"CustomSymbolStrBlkIO"
-		Cell			"CustomSymbolStrTmpVar"
-		Cell			"CustomSymbolStrMacro"
-		Cell			"ReqsInCode"
-		PropName		"DisabledProps"
-	      }
 	      ForceParamTrailComments off
 	      GenerateComments	      on
-	      IgnoreCustomStorageClasses on
+	      IgnoreCustomStorageClasses off
 	      IgnoreTestpoints	      off
 	      IncHierarchyInIds	      off
 	      MaxIdLength	      31
@@ -510,33 +465,18 @@ Model {
 	      ReqsInCode	      off
 	      UseSimReservedNames     off
 	    }
-	    Simulink.GRTTargetCC {
+	    Simulink.STFCustomTargetCC {
 	      $BackupClass	      "Simulink.TargetCC"
 	      $ObjectID		      11
 	      Version		      "1.12.0"
 	      Array {
 		Type			"Cell"
-		Dimension		16
-		Cell			"GeneratePreprocessorConditionals"
-		Cell			"IncludeMdlTerminateFcn"
-		Cell			"CombineOutputUpdateFcns"
-		Cell			"SuppressErrorStatus"
-		Cell			"ERTCustomFileBanners"
-		Cell			"GenerateSampleERTMain"
-		Cell			"GenerateTestInterfaces"
-		Cell			"ModelStepFunctionPrototypeControlCompliant"
-		Cell			"CPPClassGenCompliant"
-		Cell			"MultiInstanceERTCode"
-		Cell			"PurelyIntegerCode"
-		Cell			"SupportComplex"
-		Cell			"SupportAbsoluteTime"
-		Cell			"SupportContinuousTime"
-		Cell			"SupportNonInlinedSFcns"
-		Cell			"PortableWordSizes"
+		Dimension		1
+		Cell			"ModelReferenceCompliant"
 		PropName		"DisabledProps"
 	      }
 	      TargetFcnLib	      "ansi_tfl_table_tmw.mat"
-	      TargetLibSuffix	      ""
+	      TargetLibSuffix	      ".a"
 	      TargetPreCompLibLocation ""
 	      CodeReplacementLibrary  "ANSI_C"
 	      UtilityFuncGeneration   "Auto"
@@ -545,30 +485,30 @@ Model {
 	      ERTMultiwordLength      256
 	      MultiwordLength	      2048
 	      GenerateFullHeader      on
-	      GenerateSampleERTMain   off
+	      GenerateSampleERTMain   on
 	      GenerateTestInterfaces  off
 	      IsPILTarget	      off
 	      ModelReferenceCompliant on
-	      ParMdlRefBuildCompliant on
-	      CompOptLevelCompliant   on
-	      ConcurrentExecutionCompliant on
+	      ParMdlRefBuildCompliant off
+	      CompOptLevelCompliant   off
+	      ConcurrentExecutionCompliant off
 	      IncludeMdlTerminateFcn  on
-	      GeneratePreprocessorConditionals "Disable all"
+	      GeneratePreprocessorConditionals "Use local settings"
 	      CombineOutputUpdateFcns on
 	      CombineSignalStateStructs	off
 	      SuppressErrorStatus     off
 	      ERTFirstTimeCompliant   off
 	      IncludeFileDelimiter    "Auto"
-	      ERTCustomFileBanners    off
+	      ERTCustomFileBanners    on
 	      SupportAbsoluteTime     on
 	      LogVarNameModifier      "rt_"
-	      MatFileLogging	      on
+	      MatFileLogging	      off
 	      MultiInstanceERTCode    off
 	      SupportNonFinite	      on
 	      SupportComplex	      on
 	      PurelyIntegerCode	      off
-	      SupportContinuousTime   on
-	      SupportNonInlinedSFcns  on
+	      SupportContinuousTime   off
+	      SupportNonInlinedSFcns  off
 	      SupportVariableSizeSignals off
 	      EnableShiftOperators    on
 	      ParenthesesLevel	      "Nominal"
@@ -577,28 +517,152 @@ Model {
 	      CPPClassGenCompliant    off
 	      AutosarCompliant	      off
 	      GRTInterface	      off
-	      UseMalloc		      off
-	      ExtMode		      off
-	      ExtModeStaticAlloc      off
-	      ExtModeTesting	      off
-	      ExtModeStaticAllocSize  1000000
-	      ExtModeTransport	      0
-	      ExtModeMexFile	      "ext_comm"
-	      ExtModeIntrfLevel	      "Level1"
-	      RTWCAPISignals	      off
-	      RTWCAPIParams	      off
-	      RTWCAPIStates	      off
-	      RTWCAPIRootIO	      off
-	      GenerateASAP2	      off
+	      SystemTargetFile	      "realtime.tlc"
+	      DialogCategory	      0
+	      Array {
+		Type			"Handle"
+		Dimension		1
+		Simulink.ERTTargetCC {
+		  $BackupClass		  "Simulink.TargetCC"
+		  $ObjectID		  12
+		  Version		  "1.12.0"
+		  Array {
+		    Type		    "Cell"
+		    Dimension		    1
+		    Cell		    "ModelReferenceCompliant"
+		    PropName		    "DisabledProps"
+		  }
+		  TargetFcnLib		  "ansi_tfl_table_tmw.mat"
+		  TargetLibSuffix	  ".a"
+		  TargetPreCompLibLocation ""
+		  CodeReplacementLibrary  "ANSI_C"
+		  UtilityFuncGeneration	  "Auto"
+		  ERTMultiwordTypeDef	  "System defined"
+		  CodeExecutionProfiling  off
+		  ERTMultiwordLength	  256
+		  MultiwordLength	  2048
+		  GenerateFullHeader	  on
+		  GenerateSampleERTMain	  on
+		  GenerateTestInterfaces  off
+		  IsPILTarget		  off
+		  ModelReferenceCompliant on
+		  ParMdlRefBuildCompliant off
+		  CompOptLevelCompliant	  off
+		  ConcurrentExecutionCompliant off
+		  IncludeMdlTerminateFcn  on
+		  GeneratePreprocessorConditionals "Use local settings"
+		  CombineOutputUpdateFcns on
+		  CombineSignalStateStructs off
+		  SuppressErrorStatus	  off
+		  ERTFirstTimeCompliant	  off
+		  IncludeFileDelimiter	  "Auto"
+		  ERTCustomFileBanners	  on
+		  SupportAbsoluteTime	  on
+		  LogVarNameModifier	  "rt_"
+		  MatFileLogging	  off
+		  MultiInstanceERTCode	  off
+		  SupportNonFinite	  on
+		  SupportComplex	  on
+		  PurelyIntegerCode	  off
+		  SupportContinuousTime	  off
+		  SupportNonInlinedSFcns  off
+		  SupportVariableSizeSignals off
+		  EnableShiftOperators	  on
+		  ParenthesesLevel	  "Nominal"
+		  PortableWordSizes	  off
+		  ModelStepFunctionPrototypeControlCompliant off
+		  CPPClassGenCompliant	  off
+		  AutosarCompliant	  off
+		  GRTInterface		  off
+		  GenerateErtSFunction	  off
+		  CreateSILPILBlock	  "None"
+		  CodeExecutionProfileVariable "executionProfile"
+		  CodeProfilingSaveOptions "SummaryOnly"
+		  GenerateASAP2		  off
+		  ExtMode		  off
+		  ExtModeTransport	  0
+		  ExtModeStaticAlloc	  off
+		  ExtModeStaticAllocSize  1000000
+		  ExtModeTesting	  off
+		  ExtModeMexFile	  "ext_comm"
+		  ExtModeIntrfLevel	  "Level1"
+		  InlinedParameterPlacement "NonHierarchical"
+		  TargetOS		  "BareBoardExample"
+		  MultiInstanceErrorCode  "Error"
+		  RateGroupingCode	  on
+		  RootIOFormat		  "Individual arguments"
+		  RTWCAPISignals	  off
+		  RTWCAPIParams		  off
+		  RTWCAPIStates		  off
+		  RTWCAPIRootIO		  off
+		  ERTSrcFileBannerTemplate "ert_code_template.cgt"
+		  ERTHdrFileBannerTemplate "ert_code_template.cgt"
+		  ERTDataSrcFileTemplate  "ert_code_template.cgt"
+		  ERTDataHdrFileTemplate  "ert_code_template.cgt"
+		  ERTCustomFileTemplate	  "realtime_file_process.tlc"
+		  CoverageDialogOpen	  "off"
+		  EnableDataOwnership	  off
+		  SignalDisplayLevel	  10
+		  ParamTuneLevel	  10
+		  GlobalDataDefinition	  "Auto"
+		  DataDefinitionFile	  "global.c"
+		  GlobalDataReference	  "Auto"
+		  ERTFilePackagingFormat  "Modular"
+		  DataReferenceFile	  "global.h"
+		  PreserveExpressionOrder off
+		  PreserveIfCondition	  off
+		  ConvertIfToSwitch	  off
+		  PreserveExternInFcnDecls on
+		  SuppressUnreachableDefaultCases off
+		  EnableUserReplacementTypes off
+		  Array {
+		    Type		    "Struct"
+		    Dimension		    1
+		    MATStruct {
+		    double		    ""
+		    single		    ""
+		    int32		    ""
+		    int16		    ""
+		    int8		    ""
+		    uint32		    ""
+		    uint16		    ""
+		    uint8		    ""
+		    boolean		    ""
+		    int			    ""
+		    uint		    ""
+		    char		    ""
+		    }
+		    PropName		    "ReplacementTypes"
+		  }
+		  MemSecPackage		  "--- None ---"
+		  MemSecDataConstants	  "Default"
+		  MemSecDataIO		  "Default"
+		  MemSecDataInternal	  "Default"
+		  MemSecDataParameters	  "Default"
+		  MemSecFuncInitTerm	  "Default"
+		  MemSecFuncExecute	  "Default"
+		  MemSecFuncSharedUtil	  "Default"
+		  CodeProfilingInstrumentation off
+		}
+		PropName		"Components"
+	      }
 	    }
 	    PropName		    "Components"
 	  }
 	}
+	RealTime.SettingsController {
+	  $ObjectID		  13
+	  Version		  "1.12.0"
+	  Description		  "Run on Hardware Dialog"
+	  Name			  "Run on Hardware"
+	  TargetExtensionData	  ""
+	  TargetExtensionPlatform "None"
+	}
 	PropName		"Components"
       }
       Name		      "Configuration"
-      CurrentDlgPage	      "Solver"
-      ConfigPrmDlgPosition     [ 32, 163, 1010, 1045 ] 
+      CurrentDlgPage	      "Code Generation"
+      ConfigPrmDlgPosition     [ 28, 109, 1014, 1045 ] 
     }
     PropName		    "ConfigurationSets"
   }
@@ -607,6 +671,7 @@ Model {
     $ObjectID		    1
   }
   ExplicitPartitioning	  off
+  WSMdlFileData		  "DataTag0"
   BlockDefaults {
     ForegroundColor	    "black"
     BackgroundColor	    "white"
@@ -760,7 +825,7 @@ Model {
   }
   System {
     Name		    "sl_quadrotor"
-    Location		    [926, 466, 1942, 1053]
+    Location		    [875, 372, 1891, 1022]
     Open		    on
     ModelBrowserVisibility  off
     ModelBrowserWidth	    200
@@ -774,7 +839,7 @@ Model {
     ShowPageBoundaries	    off
     ZoomFactor		    "100"
     ReportName		    "simulink-default.rpt"
-    SIDHighWatermark	    "120"
+    SIDHighWatermark	    "136"
     Block {
       BlockType		      BusSelector
       Name		      "Bus\nSelector1"
@@ -900,7 +965,7 @@ Model {
       BlockType		      Clock
       Name		      "Clock"
       SID		      "70"
-      Position		      [735, 404, 780, 426]
+      Position		      [655, 379, 700, 401]
       ZOrder		      -7
       BackgroundColor	      "yellow"
       ShowName		      off
@@ -1088,6 +1153,7 @@ Model {
       BlockType		      Reference
       Name		      "Quadrotor plot"
       SID		      "91"
+      RequirementInfo	      "{}  %GIDa_636c0778_5e43_4edb_8038_f3f250d9dd7b"
       Ports		      [1]
       Position		      [685, 417, 715, 463]
       ZOrder		      -22
@@ -1116,7 +1182,7 @@ Model {
       Position		      [320, 374, 350, 406]
       ZOrder		      -24
       Floating		      off
-      Location		      [73, 568, 397, 807]
+      Location		      [73, 568, 391, 804]
       Open		      off
       NumInputPorts	      "1"
       List {
@@ -1326,6 +1392,7 @@ Model {
       SID		      "116"
       Position		      [25, 15, 55, 45]
       ZOrder		      -4
+      Value		      "-1.0"
     }
     Block {
       BlockType		      Constant
@@ -1663,11 +1730,11 @@ Model {
     Line {
       SrcBlock		      "Clock"
       SrcPort		      1
+      Points		      [0, 10; 90, 0; 0, 15]
       DstBlock		      "Mux"
       DstPort		      1
     }
     Line {
-      Labels		      [2, 0]
       SrcBlock		      "Control Mixer"
       SrcPort		      5
       Points		      [20, 0; 0, 140]
@@ -1794,5 +1861,38 @@ Model {
       Name		      "state"
       Position		      [973, 135]
     }
+  }
+}
+MatData {
+  NumRecords		  1
+  DataRecord {
+    Tag			    DataTag0
+    Data		    "  %)30     .    P     8    (     @         %    \"     $    !     0         %  0 !@    $    ,    3F%M90"
+    "  5F%L=64       X    X    !@    @    $          4    (     0    8    !         !     &    <V5R=F5R   .    ,     8 "
+    "   (    !@         %    \"                0         )          "
+  }
+}
+# Finite State Machines
+#
+#    Stateflow Version 7.6 (R2011b) dated Jan 25 2012, 13:50:40
+#
+#
+
+
+Stateflow {
+  machine {
+    id			    1
+    name		    "sl_quadrotor"
+    created		    "26-Feb-2014 23:48:42"
+    isLibrary		    0
+    firstTarget		    2
+    sfVersion		    76014001.00040001
+  }
+  target {
+    id			    2
+    name		    "sfun"
+    description		    "Default Simulink S-Function Target."
+    machine		    1
+    linkNode		    [1 0 0]
   }
 }
