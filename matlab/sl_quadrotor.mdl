@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.43"
+    ComputedModelVersion    "1.44"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -22,19 +22,19 @@ Model {
   FPTRunName		  "Run 1"
   MaxMDLFileLineLength	  120
   InitFcn		  "% load parameters of the default quadrotor\ndisp('Quadrotor parameters loaded by InitFcn')\nmdl_quadcopt"
-  "er"
-  ContinueFcn		  "% Get the full path to the S-function block\nblk = 'sl_quadrotor/Quadrotor plot/Plotter';\n\nfprintf"
-  "('CALLBACK\\n');\n\n% Attach the event-listener function to the S-function\nh   = add_exec_event_listener(blk, ...\n"
-  "         'PostOutputs', @simExec);"
+  "er\n"
+  StartFcn		  "% Get the full path to the S-function block\nblk = 'sl_quadrotor/Quadrotor plot/Plotter';\n\nfprintf('C"
+  "ALLBACK\\n');\n\n% Attach the event-listener function to the S-function\nh   = add_exec_event_listener(blk, ...\n   "
+  "      'PostOutputs', @simExec);"
   Created		  "Sat Mar 20 12:13:00 2010"
   Creator		  "corkep"
   UpdateHistory		  "UpdateHistoryNever"
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "fehu"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Thu Feb 27 02:54:12 2014"
-  RTWModifiedTimeStamp	  315364823
-  ModelVersionFormat	  "1.%<AutoIncrement:43>"
+  LastModifiedDate	  "Thu Feb 27 03:25:03 2014"
+  RTWModifiedTimeStamp	  315371993
+  ModelVersionFormat	  "1.%<AutoIncrement:44>"
   ConfigurationManager	  "None"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -826,7 +826,7 @@ Model {
   }
   System {
     Name		    "sl_quadrotor"
-    Location		    [623, 391, 1639, 1041]
+    Location		    [780, 301, 1796, 951]
     Open		    on
     ModelBrowserVisibility  off
     ModelBrowserWidth	    200
@@ -1393,7 +1393,7 @@ Model {
       SID		      "116"
       Position		      [25, 15, 55, 45]
       ZOrder		      -4
-      Value		      "-2.0"
+      Value		      "0.0"
     }
     Block {
       BlockType		      Constant
@@ -1401,7 +1401,7 @@ Model {
       SID		      "117"
       Position		      [25, 70, 55, 100]
       ZOrder		      -4
-      Value		      "-1.0"
+      Value		      "0.0"
     }
     Block {
       BlockType		      Constant

@@ -16,7 +16,7 @@ object Param{
 
 case class Model(name: String, path: Path, params: List[Param[_]])
 
-class DroneSimulation(val model: Model, matlab: MatlabClient, implicit val responseTimeout: Timeout)
+class DroneSimulation(val model: Model, matlab: MatlabSimClient, implicit val responseTimeout: Timeout)
                      (implicit execContext: ExecutionContext)
 {
   def init(): Future[Unit] = matlab

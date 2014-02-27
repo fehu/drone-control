@@ -18,4 +18,4 @@ object Default{
   def sel = system.actorSelection(s"akka.tcp://$systemName@$host:$port/user/$serverName")
 }
 
-class Default extends MatlabServer(ServerDefaults.serverName)(Default.system)
+class Default extends MatlabQueueServer(ServerDefaults.serverName)(Default.system)

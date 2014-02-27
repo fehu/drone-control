@@ -9,8 +9,8 @@ import org.sbtidea.SbtIdeaPlugin._
 object  Build extends sbt.Build {
 
   val ScalaVersion = "2.10.3"
-  val Version = "0.1"
-  val MatlabPath = "~/data/matlab/R2012a"
+  val Version = "0.2"
+  val MatlabPath = sys.env.getOrElse("MATLAB_HOME", sys.error("set MATLAB_HOME environment variable"))
 
   import Resolvers._
   import Dependencies._
@@ -152,8 +152,8 @@ object  Build extends sbt.Build {
           |import scala.concurrent.duration._
           |import feh.tec.matlab.server.Default.system._
           |import feh.tec.matlab._
-          |val cl = new feh.tec.matlab.MatlabClient(feh.tec.matlab.server.Default.sel)
-          |val sim = new DroneSimulation(PCorke.Model, cl, 1 second)
+          |val cl = new MatlabSimClient(server.Default.sel)
+          |val sim = new DroneSimulation(PCorke.Model, cl, 30 seconds)
         """.stripMargin
     )
   )
