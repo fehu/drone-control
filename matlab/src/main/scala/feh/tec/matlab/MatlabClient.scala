@@ -24,8 +24,8 @@ class MatlabClient(val server: ActorSelection)(implicit val execContext: Executi
 }
 
 class MatlabSimClient(server: ActorSelection)(implicit execContext: ExecutionContext) extends MatlabClient(server){
-  def startSim(name: String)(implicit timeout: Timeout) =
-    server ? MatlabQueueServer.StartSim(name) |> parseResult
+  def startSim(name: String, execLoopBlock: String)(implicit timeout: Timeout) =
+    server ? MatlabQueueServer.StartSim(name, execLoopBlock) |> parseResult
 
   def stopSim(name: String)(implicit timeout: Timeout) =
     server ? MatlabQueueServer.StopSim |> parseResult

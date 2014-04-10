@@ -123,21 +123,21 @@ class MatlabQueueServer(name: String)(implicit _asystem: ActorSystem) extends Ma
 
 object MatlabQueueServer{
 
-  case class StartSim(simName: String)
+  case class StartSim(simName: String, execLoopBlock: String)
   case object StopSim
 
   class ServerActor(shutdown: () => Unit, putToQueue: Lifted[Any] => Unit) extends MatlabAsyncServer.ServerActor(shutdown){
 
-    def startSim(name: String) = {
-      Matlab.mtFeval("setSimOnStart", Array(), 0)
+    def startSim(name: String, block: String) = {
+      Matlab.mtFeval("setSimOnStart", Array(name + "/" + block), 0)
       Matlab.mtFeval("sim", Array(name), 1)
     }
     def stopSim(name: String) = Matlab.mtFeval("set_param", Array(name, "SimulationCommand", "stop"), 0)
 
     override def receive = super.receive orElse {
-      case StartSim(name) =>
+      case StartSim(name, block) =>
         log.debug("StartSim")
-        guardRequestAndExec(startSim(name))
+        guardRequestAndExec(startSim(name, block))
         simName = Some(name)
       case StopSim if inSim =>
         log.debug("StopSim")
