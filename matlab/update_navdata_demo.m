@@ -7,7 +7,7 @@ global navdata_demo
         sizes.NumContStates  = 0;
         sizes.NumDiscStates  = 0;
         sizes.NumOutputs     = 0;
-        sizes.NumInputs      = 7;
+        sizes.NumInputs      = 10;
         sizes.DirFeedthrough = 1;
         sizes.NumSampleTimes = 1;
         sys = simsizes(sizes); 
@@ -15,17 +15,22 @@ global navdata_demo
         str = [];          % Set str to an empty matrix.
         ts = [0.05 0];
       case 3
-        % the velocity in the body frame [m]
+        % the roll/pitch/yaw rates in the body frame [rad/s]
+        navdata.roll = u(8);
+        navdata.dpitch = u(9);
+        navdata.dyaw = u(10);
+        
+        navdata.altitude = u(7);
+        
+        % the velocity in the body frame [m/s]
         navdata.dx = u(1);
         navdata.dy = u(2);
         navdata.dz = u(3);
-
-        % the roll/pitch/yaw rates in the body frame [rad/s]
-        navdata.roll = u(4);
-        navdata.pitch= u(5);
-        navdata.yaw = u(6);
-
-        navdata.altitude = u(7);
+        
+        % angular velicities in the body frame [rad/s]
+        navdata.droll = u(4);
+        navdata.dpitch= u(5);
+        navdata.dyaw = u(6);
         
         navdata_demo = navdata;
         sys = [];

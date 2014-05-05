@@ -12,7 +12,10 @@ case class NavdataDemo(ctrl_state: ControlState,
                        altitude: Int,               // UAV's altitude in centimeters
                        vx: Float,                   // UAV's estimated linear velocity
                        vy: Float,                   // UAV's estimated linear velocity
-                       vz: Float                    // UAV's estimated linear velocity
+                       vz: Float,                   // UAV's estimated linear velocity
+                       dpitch: Float,               // UAV's estimated angular velocity
+                       droll: Float,                // UAV's estimated angular velocity
+                       dyaw: Float                  // UAV's estimated angular velocity
 //                       detection_camera_type: Null  // ?????
                         ) extends NavigationData
 

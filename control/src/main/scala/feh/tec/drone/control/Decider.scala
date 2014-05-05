@@ -19,9 +19,9 @@ class PositionKeeperDemo(val controller: ActorRef, controlTimeout: Timeout)
 
   val env = new SimpleEnvironment
   val positionNotifier =
-    new ByNavdataDemoDiffPositionEstimator(Emulator.NavdataDemoFeed, env.zero)
-      with ByMeanVelocityNavdataDemoPositionEstimator
-      with PositionNotifier[NavdataDemo]
+    new ByNavdataDemoDiffPoseEstimator(Emulator.NavdataDemoFeed, env.zero)
+      with ByMeanVelocityNavdataDemoPoseEstimator
+      with PoseNotifier[NavdataDemo]
     {
       def listener = decider.self
 
@@ -48,7 +48,7 @@ class PositionKeeperDemo(val controller: ActorRef, controlTimeout: Timeout)
     case Control.Stop =>
       implicit def timeout = controlTimeout
       controller ? Control.Stop
-    case PositionEstimated(pos) =>
+    case PoseEstimated(pos) =>
       env.dronePosition = pos
       println(s"position: $pos")
   }

@@ -12,7 +12,6 @@ import akka.pattern.ask
 import scala.reflect.runtime.universe._
 
 class ControllerEmulator(val simulator: DroneSimulation[Emulator.Model],
-                         gazCoeff: Double,
                          bForwarder: ActorRef => Props,
                         implicit val asys: ActorSystem) extends Controller{
   val ioControl = null
@@ -40,21 +39,15 @@ class ControllerEmulator(val simulator: DroneSimulation[Emulator.Model],
   }
   
   def msgCommand: PartialFunction[ControlCommand, Unit] = {
-    case Takeoff =>
-      simulator.setParam(_.autoZ, true)
-      simulator.setParam(_.z, 1d)
-    case Land =>
-      simulator.setParam(_.autoZ, true)
-      simulator.setParam(_.z, 0d)
-    case EmergencyStop =>
-      simulator.setParam(_.autoZ, false)
-      simulator.setParam(_.gaz, 0d)
+    case Takeoff => ???
+    case Land => ???
+    case EmergencyStop => simulator.setParam(_.gaz, 0d)
     case CancelEmergencyStop => ???
-    case Move(_, roll, pitch, gaz, yaw) =>
+    case Move(_, roll, pitch, yaw, gaz) =>
       simulator.setParam(_.roll, roll)
       simulator.setParam(_.pitch, pitch)
-      simulator.setParam(_.gaz, gaz * gazCoeff)
       simulator.setParam(_.yaw, yaw.d) // todo
+      simulator.setParam(_.gaz, gaz.d)
   }
 }
 
@@ -78,10 +71,9 @@ object Emulator{
     )
 
   def controllerProps(simulator: DroneSimulation[Model],
-                      gazCoeff: Double,
                       bForwarder: ActorRef => Props)
                      (implicit system: ActorSystem) =
-    Props(classOf[ControllerEmulator], simulator, gazCoeff, bForwarder, system)
+    Props(classOf[ControllerEmulator], simulator, bForwarder, system)
 }
 
 object Test{
@@ -99,7 +91,7 @@ object Test{
   def readers(forwarder: ActorRef): Map[DataFeed, Props] = Map(Emulator.NavdataDemoFeed -> Emulator.navdataDemoReaderProps(simulator, forwarder))
   def bForwarder(controller: ActorRef) = DataForwarder.props(controller, new EmulatorFeedChannelStub, readers, controlTimeout)
 
-  val controller = system.actorOf(Emulator.controllerProps(simulator, gazCoeff, bForwarder))
+  val controller = system.actorOf(Emulator.controllerProps(simulator, bForwarder))
   val forwarder = Await.result(
     (controller ? Controller.GetForwarder)(10 millis).mapTo[Controller.ForwarderRef].map(_.ref),
     10 millis

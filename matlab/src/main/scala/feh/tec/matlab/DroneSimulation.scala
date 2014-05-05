@@ -9,6 +9,14 @@ import akka.actor.{ActorIdentity, Identify}
 import akka.pattern.ask
 import feh.util.InUnitInterval
 
+object Structure{
+  implicit def matlabStructureWrapper(ms: Structure) = ms.fields
+}
+case class Structure(name: String, fields: Map[String, Any]){
+  def apply[T](field: String): T = fields(field).asInstanceOf[T]
+  def get[T](field: String): Option[T] = fields.get(field).withFilter(_.isInstanceOf[T]).map(_.asInstanceOf[T])
+}
+
 case class Param[T : ClassTag](name: String, asString: T => String, parseString: String => T){
   def clazz = scala.reflect.classTag[T].runtimeClass
 }
@@ -20,17 +28,25 @@ object Param{
 }
 
 trait Method[R]{
-  def params: List[ClassTag[_]]
-  def parse: Array[Any] => R
+  def params: List[Any]
+  def result: Array[Any] => R
 }
 
-case class GetWorkspaceVar[R : ClassTag](name: String, parse: Array[Any] => R) extends Method[R]{
+case class GetWorkspaceVar[R : ClassTag](name: String, result: Array[Any] => R) extends Method[R]{
   def params = Nil
 }
 
-abstract class Model(val name: String, val execLoopBlock: String, val path: Path){
+case class GetWorkspaceVarStructure[R : ClassTag](name: String, result: Structure => R) extends Method[R]{
+  def params = Nil
+}
+
+case class GenericMethod[R](name: String, params: List[ClassTag[_]], nReturn: Int, result: Array[Any] => R) extends Method[R]
+
+abstract class Model(val name: String, val execLoopBlock: String, dir: Path){
   def params: List[Param[_]]
   def methods: List[Method[_]]
+
+  val path: Path = dir / (name + ".mdl")
 }
 
 class DroneSimulation[M <: Model](val model: M, matlab: MatlabSimClient, val defaultTimeout: Timeout)
@@ -65,7 +81,20 @@ class DroneSimulation[M <: Model](val model: M, matlab: MatlabSimClient, val def
   def execMethod[R](func: Method[R], params: Any*)(implicit timeout: Timeout = defaultTimeout): Future[R] = func match{
     case GetWorkspaceVar(name, _) =>
       assert(params.isEmpty)
-      matlab.eval(name, 1).map(func.parse)
+      matlab.eval(name, 1).map(func.result)
+    case GetWorkspaceVarStructure(name, parse) =>
+      assert(params.isEmpty)
+      matlab.eval(name, 1).map{
+        case Array(Array(names @ _*), Array(Array(vals @ _*))) =>
+          Structure(name,
+            names.zip(vals).map{ case (k: String, v) => k -> v.asInstanceOf[Array[Double]].head}.toMap[String, Any]
+          )
+      } map parse
+    case GenericMethod(name, pTags, nReturn, result) =>
+      assert(pTags.length == params.length, "wrong params number")
+      for((p, tag) <- params zip pTags)
+        assert(p.getClass == tag.runtimeClass, s"$tag is required, ${p.getClass} found")
+      matlab.feval(name, params.toList, nReturn) map result
   }
 
   def testConnection(implicit timeout: Timeout = defaultTimeout): Future[Unit] =
@@ -76,7 +105,7 @@ class DroneSimulation[M <: Model](val model: M, matlab: MatlabSimClient, val def
 
 object QuadModel{
   type PCorke = PCorke.type
-  object PCorke extends Model("sl_quadrotor", "Quadrotor plot/Plotter", "matlab" / "sl_quadrotor.mdl"){
+  object PCorke extends Model("sl_quadrotor", "Quadrotor plot/Plotter", "matlab"){
     lazy val x = Param.double("x")
     lazy val y = Param.double("y")
     lazy val z = Param.double("z")
@@ -86,17 +115,14 @@ object QuadModel{
     def methods = Nil
   }
 
-  class Drone extends Model("quadrotor_emul", "Quadrotor plot/Plotter", "matlab" / "quadrotor_emul.mdl"){
-    lazy val roll = Param.unit("roll")
+  class Drone extends Model("quadrotor_emul", "Quadrotor plot/Plotter", dir = "matlab"){
+    lazy val roll = Param.unit("roll") // why unit ??
     lazy val pitch = Param.unit("pitch")
     lazy val yaw = Param.double("yaw")
 
     lazy val gaz = Param.double("gaz")
 
-    lazy val autoZ = Param.bool("autoZ")
-    lazy val z = Param.double("z")
-
-    def params = roll :: pitch :: gaz :: yaw :: autoZ :: z :: Nil
+    def params = roll :: pitch :: gaz :: yaw :: Nil
     def methods: List[Method[_]] = Nil
   }
   object Drone extends Drone

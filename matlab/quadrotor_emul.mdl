@@ -1,12 +1,12 @@
 Model {
-  Name			  "quadrotor_emul_b"
+  Name			  "quadrotor_emul"
   Version		  7.9
   MdlSubVersion		  0
   GraphicalInterface {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.57"
+    ComputedModelVersion    "1.58"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -29,9 +29,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "fehu"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Sun May 04 21:56:00 2014"
-  RTWModifiedTimeStamp	  321140662
-  ModelVersionFormat	  "1.%<AutoIncrement:57>"
+  LastModifiedDate	  "Sun May 04 22:51:15 2014"
+  RTWModifiedTimeStamp	  321144670
+  ModelVersionFormat	  "1.%<AutoIncrement:58>"
   ConfigurationManager	  "None"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -725,21 +725,6 @@ Model {
       PreserveConstantTs      off
     }
     Block {
-      BlockType		      Gain
-      Gain		      "1"
-      Multiplication	      "Element-wise(K.*u)"
-      ParamMin		      "[]"
-      ParamMax		      "[]"
-      ParamDataTypeStr	      "Inherit: Same as input"
-      OutMin		      "[]"
-      OutMax		      "[]"
-      OutDataTypeStr	      "Inherit: Same as input"
-      LockScale		      off
-      RndMeth		      "Floor"
-      SaturateOnIntegerOverflow	on
-      SampleTime	      "-1"
-    }
-    Block {
       BlockType		      Mux
       Inputs		      "4"
       DisplayOption	      "none"
@@ -755,37 +740,6 @@ Model {
       SFunctionDeploymentMode off
     }
     Block {
-      BlockType		      Sum
-      IconShape		      "rectangular"
-      Inputs		      "++"
-      CollapseMode	      "All dimensions"
-      CollapseDim	      "1"
-      InputSameDT	      on
-      AccumDataTypeStr	      "Inherit: Inherit via internal rule"
-      OutMin		      "[]"
-      OutMax		      "[]"
-      OutDataTypeStr	      "Inherit: Same as first input"
-      LockScale		      off
-      RndMeth		      "Floor"
-      SaturateOnIntegerOverflow	on
-      SampleTime	      "-1"
-    }
-    Block {
-      BlockType		      Switch
-      Criteria		      "u2 >= Threshold"
-      Threshold		      "0"
-      InputSameDT	      on
-      OutMin		      "[]"
-      OutMax		      "[]"
-      OutDataTypeStr	      "Inherit: Inherit via internal rule"
-      LockScale		      off
-      RndMeth		      "Floor"
-      SaturateOnIntegerOverflow	on
-      ZeroCross		      on
-      SampleTime	      "-1"
-      AllowDiffInputSizes     off
-    }
-    Block {
       BlockType		      ToWorkspace
       VariableName	      "simulink_output"
       MaxDataPoints	      "1000"
@@ -797,8 +751,8 @@ Model {
     }
   }
   System {
-    Name		    "quadrotor_emul_b"
-    Location		    [380, 259, 1467, 908]
+    Name		    "quadrotor_emul"
+    Location		    [914, 181, 1468, 830]
     Open		    on
     ModelBrowserVisibility  off
     ModelBrowserWidth	    200
@@ -818,40 +772,17 @@ Model {
       Name		      "Bus\nSelector"
       SID		      "151"
       Ports		      [1, 1]
-      Position		      [685, 550, 690, 590]
+      Position		      [245, 550, 250, 590]
       ZOrder		      -3
       ShowName		      off
       OutputSignals	      "dx,dy,dz,droll,dpitch,dyaw,Z"
       OutputAsBus	      on
     }
     Block {
-      BlockType		      BusSelector
-      Name		      "Bus\nSelector6"
-      SID		      "6"
-      Ports		      [1, 2]
-      Position		      [165, 433, 170, 502]
-      ZOrder		      -6
-      ForegroundColor	      "red"
-      ShowName		      off
-      OutputSignals	      "Z,dz"
-      Port {
-	PortNumber		1
-	Name			"<Z>"
-	RTWStorageClass		"Auto"
-	DataLoggingNameMode	"SignalName"
-      }
-      Port {
-	PortNumber		2
-	Name			"<dz>"
-	RTWStorageClass		"Auto"
-	DataLoggingNameMode	"SignalName"
-      }
-    }
-    Block {
       BlockType		      Clock
       Name		      "Clock"
       SID		      "70"
-      Position		      [700, 354, 745, 376]
+      Position		      [260, 354, 305, 376]
       ZOrder		      -7
       BackgroundColor	      "yellow"
       ShowName		      off
@@ -862,7 +793,7 @@ Model {
       Name		      "Control Mixer"
       SID		      "93"
       Ports		      [4, 5]
-      Position		      [570, 40, 630, 350]
+      Position		      [130, 40, 190, 350]
       ZOrder		      -8
       DropShadow	      on
       LibraryVersion	      "1.57"
@@ -870,45 +801,22 @@ Model {
       SourceType	      ""
     }
     Block {
-      BlockType		      Gain
-      Name		      "D_z"
-      SID		      "31"
-      Position		      [255, 470, 285, 500]
-      ZOrder		      -12
-      ForegroundColor	      "red"
-      ParamDataTypeStr	      "Inherit: Inherit via internal rule"
-      OutDataTypeStr	      "Inherit: Inherit via internal rule"
-      SaturateOnIntegerOverflow	off
-    }
-    Block {
       BlockType		      Mux
       Name		      "Mux"
       SID		      "71"
       Ports		      [3, 1]
-      Position		      [875, 405, 880, 465]
+      Position		      [435, 405, 440, 465]
       ZOrder		      -14
       ShowName		      off
       Inputs		      "3"
       DisplayOption	      "bar"
     }
     Block {
-      BlockType		      Gain
-      Name		      "P_z"
-      SID		      "39"
-      Position		      [375, 435, 405, 465]
-      ZOrder		      -19
-      ForegroundColor	      "red"
-      Gain		      "-40"
-      ParamDataTypeStr	      "Inherit: Inherit via internal rule"
-      OutDataTypeStr	      "Inherit: Inherit via internal rule"
-      SaturateOnIntegerOverflow	off
-    }
-    Block {
       BlockType		      Reference
       Name		      "Quadrotor"
       SID		      "85"
       Ports		      [4, 1]
-      Position		      [845, 42, 905, 288]
+      Position		      [405, 42, 465, 288]
       ZOrder		      -21
       DropShadow	      on
       LibraryVersion	      "1.57"
@@ -922,7 +830,7 @@ Model {
       SID		      "91"
       RequirementInfo	      "{}  %GIDa_636c0778_5e43_4edb_8038_f3f250d9dd7b"
       Ports		      [1]
-      Position		      [685, 417, 715, 463]
+      Position		      [245, 417, 275, 463]
       ZOrder		      -22
       DropShadow	      on
       LibraryVersion	      "1.57"
@@ -935,97 +843,22 @@ Model {
       Name		      "S-Function"
       SID		      "154"
       Ports		      [1]
-      Position		      [765, 555, 880, 585]
+      Position		      [325, 555, 440, 585]
       ZOrder		      -5
       FunctionName	      "update_navdata_demo"
       EnableBusSupport	      off
-    }
-    Block {
-      BlockType		      Sum
-      Name		      "Sum15"
-      SID		      "55"
-      Ports		      [2, 1]
-      Position		      [310, 440, 330, 460]
-      ZOrder		      -26
-      ForegroundColor	      "red"
-      ShowName		      off
-      IconShape		      "round"
-      Inputs		      "|+-"
-      InputSameDT	      off
-      OutDataTypeStr	      "Inherit: Inherit via internal rule"
-      SaturateOnIntegerOverflow	off
-    }
-    Block {
-      BlockType		      Sum
-      Name		      "Sum3"
-      SID		      "61"
-      Ports		      [2, 1]
-      Position		      [255, 440, 275, 460]
-      ZOrder		      -32
-      ForegroundColor	      "red"
-      ShowName		      off
-      IconShape		      "round"
-      Inputs		      "+-|"
-      InputSameDT	      off
-      OutDataTypeStr	      "Inherit: Inherit via internal rule"
-      SaturateOnIntegerOverflow	off
-    }
-    Block {
-      BlockType		      Sum
-      Name		      "Sum4"
-      SID		      "62"
-      Ports		      [2, 1]
-      Position		      [450, 440, 470, 460]
-      ZOrder		      -33
-      ForegroundColor	      "red"
-      DropShadow	      on
-      ShowName		      off
-      IconShape		      "round"
-      Inputs		      "++|"
-      InputSameDT	      off
-      OutDataTypeStr	      "Inherit: Inherit via internal rule"
-      SaturateOnIntegerOverflow	off
-    }
-    Block {
-      BlockType		      Switch
-      Name		      "Switch"
-      SID		      "147"
-      Position		      [310, 290, 360, 330]
-      ZOrder		      -19
-      Criteria		      "u2 > Threshold"
-      InputSameDT	      off
-      SaturateOnIntegerOverflow	off
     }
     Block {
       BlockType		      ToWorkspace
       Name		      "To Workspace"
       SID		      "69"
       Ports		      [1]
-      Position		      [905, 420, 955, 450]
+      Position		      [465, 420, 515, 450]
       ZOrder		      -34
       ShowName		      off
       VariableName	      "result"
       MaxDataPoints	      "inf"
       SampleTime	      "-1"
-    }
-    Block {
-      BlockType		      ToWorkspace
-      Name		      "To Workspace1"
-      SID		      "72"
-      Ports		      [1]
-      Position		      [570, 460, 630, 490]
-      ZOrder		      -35
-      ShowName		      off
-      VariableName	      "T"
-      MaxDataPoints	      "inf"
-      SampleTime	      "-1"
-    }
-    Block {
-      BlockType		      Constant
-      Name		      "autoZ"
-      SID		      "148"
-      Position		      [25, 360, 55, 390]
-      ZOrder		      -4
     }
     Block {
       BlockType		      Constant
@@ -1053,30 +886,11 @@ Model {
     }
     Block {
       BlockType		      Constant
-      Name		      "w0"
-      SID		      "63"
-      Position		      [415, 375, 445, 405]
-      ZOrder		      -36
-      ForegroundColor	      "red"
-      DropShadow	      on
-      Value		      "sqrt(quad.M*quad.g/4/quad.b)"
-      SampleTime	      "0"
-    }
-    Block {
-      BlockType		      Constant
       Name		      "yaw"
       SID		      "118"
       Position		      [25, 220, 55, 250]
       ZOrder		      -4
       Value		      "0"
-    }
-    Block {
-      BlockType		      Constant
-      Name		      "z"
-      SID		      "119"
-      Position		      [25, 430, 55, 460]
-      ZOrder		      -4
-      Value		      "-4"
     }
     Line {
       SrcBlock		      "Control Mixer"
@@ -1091,25 +905,6 @@ Model {
       DstPort		      4
     }
     Line {
-      SrcBlock		      "w0"
-      SrcPort		      1
-      Points		      [10, 0]
-      DstBlock		      "Sum4"
-      DstPort		      1
-    }
-    Line {
-      SrcBlock		      "Sum15"
-      SrcPort		      1
-      DstBlock		      "P_z"
-      DstPort		      1
-    }
-    Line {
-      SrcBlock		      "P_z"
-      SrcPort		      1
-      DstBlock		      "Sum4"
-      DstPort		      2
-    }
-    Line {
       SrcBlock		      "Quadrotor"
       SrcPort		      1
       Points		      [55, 0; 0, 365; -130, 0]
@@ -1118,11 +913,6 @@ Model {
 	Branch {
 	  Points		  [0, -90]
 	  DstBlock		  "Quadrotor plot"
-	  DstPort		  1
-	}
-	Branch {
-	  Points		  [-530, 0; 0, -60]
-	  DstBlock		  "Bus\nSelector6"
 	  DstPort		  1
 	}
 	Branch {
@@ -1135,59 +925,6 @@ Model {
 	Points			[0, -95]
 	DstBlock		"Mux"
 	DstPort			2
-      }
-    }
-    Line {
-      Name		      "<Z>"
-      Labels		      [0, 0]
-      SrcBlock		      "Bus\nSelector6"
-      SrcPort		      1
-      DstBlock		      "Sum3"
-      DstPort		      2
-    }
-    Line {
-      SrcBlock		      "z"
-      SrcPort		      1
-      Points		      [85, 0; 0, -30; 120, 0]
-      DstBlock		      "Sum3"
-      DstPort		      1
-    }
-    Line {
-      SrcBlock		      "Sum3"
-      SrcPort		      1
-      DstBlock		      "Sum15"
-      DstPort		      1
-    }
-    Line {
-      Name		      "<dz>"
-      Labels		      [0, 0]
-      SrcBlock		      "Bus\nSelector6"
-      SrcPort		      2
-      DstBlock		      "D_z"
-      DstPort		      1
-    }
-    Line {
-      SrcBlock		      "D_z"
-      SrcPort		      1
-      Points		      [30, 0]
-      DstBlock		      "Sum15"
-      DstPort		      2
-    }
-    Line {
-      SrcBlock		      "Sum4"
-      SrcPort		      1
-      Points		      [75, 0]
-      Branch {
-	Labels			[1, 0]
-	Points			[0, 25]
-	DstBlock		"To Workspace1"
-	DstPort			1
-      }
-      Branch {
-	Labels			[2, 0]
-	Points			[0, -85; -265, 0; 0, -40]
-	DstBlock		"Switch"
-	DstPort			3
       }
     }
     Line {
@@ -1241,24 +978,10 @@ Model {
       DstPort		      1
     }
     Line {
-      SrcBlock		      "autoZ"
-      SrcPort		      1
-      Points		      [115, 0; 0, -65]
-      DstBlock		      "Switch"
-      DstPort		      2
-    }
-    Line {
-      SrcBlock		      "Switch"
+      SrcBlock		      "gaz"
       SrcPort		      1
       DstBlock		      "Control Mixer"
       DstPort		      4
-    }
-    Line {
-      SrcBlock		      "gaz"
-      SrcPort		      1
-      Points		      [105, 0; 0, -15]
-      DstBlock		      "Switch"
-      DstPort		      1
     }
     Line {
       SrcBlock		      "Bus\nSelector"
@@ -1267,25 +990,9 @@ Model {
       DstPort		      1
     }
     Annotation {
-      SID		      "95"
-      Name		      "state vector"
-      Position		      [481, 518]
-    }
-    Annotation {
-      SID		      "96"
-      Name		      "gravity feedforward"
-      Position		      [477, 470]
-    }
-    Annotation {
-      SID		      "103"
-      Name		      "height rate\nloop"
-      Position		      [327, 465]
-      HorizontalAlignment     "left"
-    }
-    Annotation {
       SID		      "105"
       Name		      "state"
-      Position		      [973, 135]
+      Position		      [533, 135]
     }
   }
 }
@@ -1308,7 +1015,7 @@ MatData {
 Stateflow {
   machine {
     id			    1
-    name		    "quadrotor_emul_b"
+    name		    "quadrotor_emul"
     created		    "26-Feb-2014 23:48:42"
     isLibrary		    0
     firstTarget		    2

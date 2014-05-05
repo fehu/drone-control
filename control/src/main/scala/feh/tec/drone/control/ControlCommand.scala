@@ -23,12 +23,15 @@ package object DroneApiCommands{
   case class Move(ﬂag: MoveFlag,
                   roll: InUnitInterval,
                   pitch: InUnitInterval,
-                  gaz: InUnitInterval,
-                  yaw: InUnitInterval) extends ControlCommand
+                  yaw: InUnitInterval,
+                  gaz: InUnitInterval) extends ControlCommand
 
   case class MoveFlag(absoluteControl: Boolean,
                       combinedYaw: Boolean,
                       progressiveCommands: Boolean)
+  object MoveFlag{
+    def default = MoveFlag(false, false, false)
+  }
 
   case object ResetWatchdog extends ControlCommand
 }

@@ -93,6 +93,7 @@ object Math {
 
   implicit class PowWrapper(d: Double){
     def pow(p: Double) = math.pow(d, p)
+    def ^(p: Double) = pow(p)
   }
 }
 

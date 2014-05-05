@@ -5,42 +5,50 @@ import feh.tec.drone.control.util.Math._
 import breeze.linalg.DenseVector
 import Environment._
 
-trait PositionEstimator[Nav <: NavigationData] extends DataListener[Nav]{
-  def estimatePosition(data: Nav): Environment#Coordinate
+case class Orientation(pitch: Float, roll: Float, yaw: Float)
+case class Pose(position: Environment#Coordinate, orientation: Orientation)
+
+trait PoseEstimator[Nav <: NavigationData] extends DataListener[Nav]{
+  def estimatePose(data: Nav): Pose
 }
 
-case class PositionEstimated(position: Environment#Coordinate)
+case class PoseEstimated(pose: Pose)
 
-trait NavdataDemoPositionEstimator extends PositionEstimator[NavdataDemo]{
+trait NavdataDemoPoseEstimator extends PoseEstimator[NavdataDemo]{
   def lastData: NavdataDemo
   def lastReceived: Long
   def lastPosition: Environment#Coordinate
 }
 
-trait PositionNotifier[Nav <: NavigationData] extends PositionEstimator[Nav]{
+trait PoseNotifier[Nav <: NavigationData] extends PoseEstimator[Nav]{
   def listener: ActorRef
 
   def on_? : Boolean
 
-  def notifyPosition(pos: Environment#Coordinate) = if(on_?) listener ! PositionEstimated(pos)
+  def notifyPose(pose: Pose) = if(on_?) listener ! PoseEstimated(pose)
 
-  def forwarded(data: Nav) = notifyPosition(estimatePosition(data))
+  def forwarded(data: Nav) = notifyPose(estimatePose(data))
 }
+
+trait ByNavdataDemoPoseEstimator extends NavdataDemoPoseEstimator{
+  def feed: NavdataDemoFeed
+  val feeds = Map(feedsEntry[NavdataDemoFeed](feed, identity))
+
+  def orientation(data: NavdataDemo) = Orientation(data.pitch, data.roll, data.yaw)
+}
+
 
 /** Estimates position change using current navdata, the previous one and time between reception.
   */
-abstract class ByNavdataDemoDiffPositionEstimator(feed: NavdataDemoFeed, envZero: Environment#Coordinate)
-  extends NavdataDemoPositionEstimator
+abstract class ByNavdataDemoDiffPoseEstimator(val feed: NavdataDemoFeed, envZero: Environment#Coordinate)
+  extends ByNavdataDemoPoseEstimator
 {
-
-  val feeds = Map(feedsEntry[NavdataDemoFeed](feed, identity))
-
   var lastData: NavdataDemo = _
   var lastReceived: Long = _
   var lastPosition: Environment#Coordinate = _
   var isFirst = true
 
-  def estimatePosition(data: NavdataDemo) = {
+  def estimatePose(data: NavdataDemo) = {
     val t = System.currentTimeMillis()
     if(isFirst){
       lastPosition = envZero
@@ -51,7 +59,7 @@ abstract class ByNavdataDemoDiffPositionEstimator(feed: NavdataDemoFeed, envZero
     }
     lastReceived = t
     lastData = data
-    lastPosition
+    Pose(lastPosition, orientation(data))
   }
 
   def position(current: NavdataDemo, currWhen: Long, old: NavdataDemo, oldWhen: Long, lastPos: Environment#Coordinate): Environment#Coordinate
@@ -61,7 +69,7 @@ abstract class ByNavdataDemoDiffPositionEstimator(feed: NavdataDemoFeed, envZero
 /** Estimates movement using sum of previous and current velocity vectors.
   *  Uses messages delay as time to calculate distance travelled.
   */
-trait ByMeanVelocityNavdataDemoPositionEstimator extends ByNavdataDemoDiffPositionEstimator
+trait ByMeanVelocityNavdataDemoPoseEstimator extends ByNavdataDemoDiffPoseEstimator
 {
   def navdataRTY(nav: NavdataDemo) = rpy(nav.roll, nav.pitch, nav.yaw)
   def velocityVector(nav: NavdataDemo) = DenseVector(nav.vx.toDouble, nav.vy.toDouble, nav.vz.toDouble)//.t

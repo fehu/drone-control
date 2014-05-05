@@ -1,25 +1,25 @@
 package feh.tec.drone.control.emul
 
-import feh.tec.matlab.{GetWorkspaceVar, Method, QuadModel}
+import feh.tec.matlab.{GetWorkspaceVarStructure, GetWorkspaceVar, Method, QuadModel}
 import feh.tec.drone.control.{ControlState, NavdataDemo}
 import feh.tec.drone.control.util.UnsignedInt
 
 class DroneModel extends QuadModel.Drone {
-  lazy val navdataDemo = GetWorkspaceVar[NavdataDemo]("get_navdata_demo", {
-    case Array(Array(names @ _*), Array(Array(vals @ _*))) =>
-      val params = names.zip(vals).map{ case (k: String, v) => k -> v.asInstanceOf[Array[Double]].head}.toMap[String, Double]
+  lazy val navdataDemo = GetWorkspaceVarStructure[NavdataDemo]("get_navdata_demo", params =>
       NavdataDemo(
         ctrl_state = ControlState.Default, // todo
         batteryVoltage = UnsignedInt(0), //todo
-        pitch = params("pitch").toFloat,
-        roll = params("roll").toFloat,
-        yaw = params("yaw").toFloat,
-        altitude = params("altitude").toInt,
-        vx = params("dx").toFloat,
-        vy = params("dy").toFloat,
-        vz = params("dz").toFloat
+        pitch = params[Double]("pitch").toFloat,
+        roll = params[Double]("roll").toFloat,
+        yaw = params[Double]("yaw").toFloat,
+        altitude = params[Double]("altitude").toInt,
+        vx = params[Double]("dx").toFloat,
+        vy = params[Double]("dy").toFloat,
+        vz = params[Double]("dz").toFloat,
+        dpitch = params[Double]("dpitch").toFloat,
+        droll = params[Double]("droll").toFloat,
+        dyaw = params[Double]("dyaw").toFloat
       )
-  }
   )
 
   override def methods = navdataDemo :: Nil
