@@ -13,6 +13,8 @@ trait Decider extends Actor{
   def controller: ActorRef
 }
 
+/*
+@deprecated("delete it")
 class PositionKeeperDemo(val controller: ActorRef, controlTimeout: Timeout)
                         (implicit execContext: ExecutionContext) extends Decider{
   decider =>
@@ -23,7 +25,7 @@ class PositionKeeperDemo(val controller: ActorRef, controlTimeout: Timeout)
       with ByMeanVelocityNavdataDemoPoseEstimator
       with PoseNotifier[NavdataDemo]
     {
-      def listener = decider.self
+      def forwarder = decider.self
 
       lazy val NavdataDemoFeed = BuildDataMatcher[NavdataDemoFeed]
 
@@ -48,8 +50,8 @@ class PositionKeeperDemo(val controller: ActorRef, controlTimeout: Timeout)
     case Control.Stop =>
       implicit def timeout = controlTimeout
       controller ? Control.Stop
-    case PoseEstimated(pos) =>
-      env.dronePosition = pos.position
-      println(s"position: $pos")
+//    case PoseEstimated(pos) =>
+//      env.dronePosition = pos.position
+//      println(s"position: $pos")
   }
-}
+}*/

@@ -15,14 +15,6 @@ trait DataListener[Data] extends Actor{
 
   type BuildData = PartialFunction[(DataFeed, DataFeed#Data), Data]
 
-  class BuildDataMatcher[F <: DataFeed](implicit tag: TypeTag[F]){
-    def unapply(p: (DataFeed, DataFeed#Data)): Option[F#Data] =
-      if(tag.tpe =:= p._1.dataTag.tpe) Some(p._2.asInstanceOf[F#Data]) else None
-  }
-  object BuildDataMatcher{
-    def apply[F <: DataFeed: TypeTag] = new BuildDataMatcher[F]
-  }
-
 //  def buildDataMatcher[F <: DataFeed](f: F) =
 
   def buildData: BuildData
@@ -36,6 +28,23 @@ trait DataListener[Data] extends Actor{
     case Control.Start => start()
     case Control.Stop => stop()
   }
+}
+
+class BuildDataMatcher[F <: DataFeed](implicit tag: TypeTag[F]){
+  def unapply(p: (DataFeed, DataFeed#Data)): Option[F#Data] =
+    if(tag.tpe =:= p._1.dataTag.tpe) Some(p._2.asInstanceOf[F#Data]) else None
+}
+object BuildDataMatcher{
+  def apply[F <: DataFeed: TypeTag] = new BuildDataMatcher[F]
+}
+
+class BuildForwardMatcher[F <: DataFeed](implicit tag: TypeTag[F]){
+  def unapply(f: Forward[DataFeed]): Option[F#Data] =
+    if(tag.tpe =:= f.feed.dataTag.tpe) Some(f.data.asInstanceOf[F#Data]) else None
+}
+
+object BuildForwardMatcher{
+  def apply[F <: DataFeed: TypeTag] = new BuildForwardMatcher[F]
 }
 
 /** Analyses data to advise the decider (or other analyzers)

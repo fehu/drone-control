@@ -7,6 +7,7 @@ import scala.collection.mutable
 import scala.concurrent.duration.FiniteDuration
 import feh.util._
 import feh.tec.drone.control.FeedReader.ReadRawAndForward
+import feh.tec.drone.control.DataForwarder.Forward
 
 /**
  * Forwards data read from drone feeds to listeners
@@ -35,7 +36,7 @@ object DataForwarder{
   case class Unsubscribe(feed: DataFeed) extends InMessage
   case class Read(raw: Array[Byte]) extends InMessage
 
-  case class Forward[Feed <: DataFeed](feed: Feed, data: Feed#Data) extends OutMessage
+  case class Forward[Feed <: DataFeed](feed: Feed, data: Feed#Data) extends InMessage with OutMessage
   case class FeedError(feed: DataFeed, err: Throwable) extends OutMessage
 
 /*
@@ -116,13 +117,16 @@ object DataForwarder{
       case Control.Stop =>
     }
 
+    private def listenersFor(feed: DataFeed) = listeners.filter(_._2.contains(feed)).keySet
+
     def msgIn: PartialFunction[InMessage, Unit] = {
       case Subscribe(feed) => _listeners <<=(sender, _ + feed)
       case Unsubscribe(feed) => _listeners <<=(sender, _ - feed)
+      case f@Forward(feed, data) => listenersFor(feed) foreach (_ ! f)
       case Read(raw) =>
         for{
           (feed, reader) <- readerForFeed
-          l = listeners.filter(_._2.contains(feed)).keySet
+          l = listenersFor(feed)
         } reader ! ReadRawAndForward(raw, l)
     }
   }
@@ -151,4 +155,16 @@ object FeedReader{
       case ReadRawAndForward(arr, to) => to.foreach(_ ! DataForwarder.Forward(feed, read(arr)))
     }
   }
+}
+
+trait FeedNotifier{
+  type Feed <: DataFeed
+
+  def forwarder: ActorRef
+  def feed: Feed
+
+  def on_? : Boolean
+
+  def notifyForwarder(data: Feed#Data) = if(on_?) forwarder ! Forward[Feed](feed, data)
+
 }

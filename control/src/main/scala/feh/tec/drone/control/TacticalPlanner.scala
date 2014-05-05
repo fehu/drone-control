@@ -1,7 +1,7 @@
 package feh.tec.drone.control
 
 import akka.actor.Actor
-import feh.tec.drone.control.TacticalPlanner.{WaypointsControl, SetWaypoints}
+import feh.tec.drone.control.TacticalPlanner.{WaypointReached, WaypointsControl, SetWaypoints}
 import feh.tec.matlab.{DroneSimulation, MatlabSimClient}
 import feh.tec.drone.control.util.Math.PowWrapper
 import feh.tec.drone.control.Coordinate.CoordinateOps
@@ -10,6 +10,8 @@ import akka.util.Timeout
 import feh.tec.drone.control.Config.SimConfig
 import feh.tec.drone.control.DroneApiCommands.MoveFlag
 import scala.concurrent.Future
+import feh.tec.drone.control.DataForwarder.Forward
+import scala.reflect.runtime.universe._
 
 object TacticalPlanner{
 
@@ -26,11 +28,15 @@ object TacticalPlanner{
 trait TacticalPlanner extends Actor{
   var waypoints: Seq[Environment#Coordinate] = Nil
 
+  def nextWaypoint() = waypoints = if(waypoints.nonEmpty) waypoints.tail else Nil
   def destination = waypoints.headOption
 
   def msgWaypoints(msg: WaypointsControl) = msg match {
     case SetWaypoints(wp@_*) => waypoints = wp
   }
+
+  val poseEstimationFeedTag: TypeTag[_ <: AbstractPoseEstimationFeed]
+  lazy val PoseEstimationFeed = BuildForwardMatcher(poseEstimationFeedTag)
 
   def poseEstimation: Pose
   
@@ -43,7 +49,7 @@ trait TacticalPlanner extends Actor{
 
   def receive = {
     case wp: WaypointsControl => msgWaypoints(wp)
-    case PoseEstimated(pose) => msgPoseEstimated(pose)
+    case PoseEstimationFeed(pose) => msgPoseEstimated(pose)
   }
 }
 
@@ -88,18 +94,33 @@ trait MatlabDynControlTacticalPlanner extends TacticalPlanner{
   }
 }
 
-class StraightLineTacticalPlanner(env: Environment, val matlab: MatlabSimClient, val simConf: SimConfig)
+class StraightLineTacticalPlanner(val env: Environment,
+//                                  val strategicPlanner: StrategicPlanner,
+                                  val matlab: MatlabSimClient,
+                                  val simConf: SimConfig,
+                                  val poseEstimationFeedTag: TypeTag[_ <: AbstractPoseEstimationFeed],
+                                  val pointDistance: Double)
   extends MatlabDynControlTacticalPlanner with TacticalPlannerHelper
 {
   type Input = NavdataDemo
   var poseEstimation = Pose(env.zero, Orientation(0, 0, 0))
 
+
   def msgPoseEstimated(pose: Pose) = poseEstimation = pose
+
+  private def isCloseToPoint = closeToPoint_?(pointDistance) _
 
   /** what's next to do
     */
-  def command = nav => getControl(poseEstimation, nav).map (c =>
-    DroneApiCommands.Move(MoveFlag.default, c.roll, c.pitch, c.yaw, c.gaz)
-    )
+  def command = nav => {
+    if(destination.nonEmpty && isCloseToPoint(poseEstimation.position)){
+//      strategicPlanner ! WaypointReached(destination.get, System.currentTimeMillis())
+      nextWaypoint()
+      destination foreach (setControlDestination(_))
+    }
 
+    getControl(poseEstimation, nav).map (c =>
+      DroneApiCommands.Move(MoveFlag.default, c.roll, c.pitch, c.yaw, c.gaz)
+    )
+  }
 }

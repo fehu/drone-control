@@ -4,6 +4,8 @@ import akka.actor.ActorRef
 import feh.tec.drone.control.util.Math._
 import breeze.linalg.DenseVector
 import Environment._
+import feh.tec.drone.control.DataForwarder.Forward
+import scala.reflect.runtime.{universe => ru}
 
 case class Orientation(pitch: Float, roll: Float, yaw: Float)
 case class Pose(position: Environment#Coordinate, orientation: Orientation)
@@ -12,22 +14,21 @@ trait PoseEstimator[Nav <: NavigationData] extends DataListener[Nav]{
   def estimatePose(data: Nav): Pose
 }
 
-case class PoseEstimated(pose: Pose)
-
 trait NavdataDemoPoseEstimator extends PoseEstimator[NavdataDemo]{
   def lastData: NavdataDemo
   def lastReceived: Long
   def lastPosition: Environment#Coordinate
 }
 
-trait PoseNotifier[Nav <: NavigationData] extends PoseEstimator[Nav]{
-  def listener: ActorRef
+trait AbstractPoseEstimationFeed extends DataFeed{
+  type Data = Pose
+  def dataTag = ru.typeTag[Pose]
+}
 
-  def on_? : Boolean
+trait PoseNotifier[Nav <: NavigationData] extends PoseEstimator[Nav] with FeedNotifier{
+  type Feed <: AbstractPoseEstimationFeed
 
-  def notifyPose(pose: Pose) = if(on_?) listener ! PoseEstimated(pose)
-
-  def forwarded(data: Nav) = notifyPose(estimatePose(data))
+  def forwarded(data: Nav) = notifyForwarder(estimatePose(data))
 }
 
 trait ByNavdataDemoPoseEstimator extends NavdataDemoPoseEstimator{
