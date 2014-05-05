@@ -46,11 +46,13 @@ object DataForwarder{
              controlTimeout: Timeout)
             (implicit system: ActorSystem) = system.actorOf(props(controller, channel, readers, controlTimeout))
 */
-  def props(controller: ActorRef,
-            channel: IOFeedChannel,
+  def props(channel: IOFeedChannel,
+            tryReading: IOFeedChannel => Option[Array[Byte]],
             readers: ActorRef => Map[DataFeed, Props],
-            controlTimeout: Timeout)
-           (implicit system: ActorSystem) = Props(classOf[GenericDataForwarder], controller, channel, readers, controlTimeout, system)
+            extraFeedsProps:  Map[DataFeed, FeedNotifierProps],
+            tryReadFreqDelay: FiniteDuration)
+           (implicit system: ActorSystem) =
+    Props(classOf[GenericDataForwarder], channel, tryReading, readers, tryReadFreqDelay, system)
 
   case object Tick
 
@@ -86,10 +88,10 @@ object DataForwarder{
     }
   }
 
-  class GenericDataForwarder(controller: ActorRef,
-                             val channel: IOFeedChannel,
+  class GenericDataForwarder(val channel: IOFeedChannel,
                              tryReading: IOFeedChannel => Option[Array[Byte]],
-                             readers: ActorRef => Map[DataFeed, Props],
+                             readers: ActorRef => Map[DataFeed, FeedReaderProps],
+                             extraFeedsProps:  Map[DataFeed, FeedNotifierProps],
                              tryReadFreqDelay: FiniteDuration,
                              implicit val system: ActorSystem) extends DataForwarder{
 
@@ -98,7 +100,7 @@ object DataForwarder{
     )
     
     lazy val readerForFeed = readers(self).map{
-      case (feed, props) => feed -> system.actorOf(props)
+      case (feed, props) => feed -> system.actorOf(props.get)
     }
     lazy val feedByRef = readerForFeed.map(_.swap).toMap
 
@@ -110,11 +112,16 @@ object DataForwarder{
       case in: InMessage => msgIn(in)
     }
 
+    lazy val extraFeeds = extraFeedsProps.mapValues(system actorOf _.props)
+
     def msgControl: PartialFunction[Control.Message, Unit] = {
       case Control.Start =>
-        readerForFeed; feedByRef;
+        readerForFeed; feedByRef; extraFeeds // init lazy vals
         channelReader ! Control.Start
+        extraFeeds foreach(_._2 ! Control.Start)
       case Control.Stop =>
+        channelReader ! Control.Stop
+        extraFeeds foreach(_._2 ! Control.Stop)
     }
 
     private def listenersFor(feed: DataFeed) = listeners.filter(_._2.contains(feed)).keySet
@@ -122,7 +129,7 @@ object DataForwarder{
     def msgIn: PartialFunction[InMessage, Unit] = {
       case Subscribe(feed) => _listeners <<=(sender, _ + feed)
       case Unsubscribe(feed) => _listeners <<=(sender, _ - feed)
-      case f@Forward(feed, data) => listenersFor(feed) foreach (_ ! f)
+      case f@Forward(feed, data) if extraFeeds.keySet contains feed => listenersFor(feed) foreach (_ ! f)
       case Read(raw) =>
         for{
           (feed, reader) <- readerForFeed
@@ -132,7 +139,13 @@ object DataForwarder{
   }
 }
 
+case class FeedReaderProps(props: Props){ def get: Props = props }
+object FeedReaderProps{
+  implicit def feedReaderPropsWrapper(fp: FeedReaderProps) = fp.props
+}
+
 object FeedReader{
+
   trait Message
 
   case class ReadRawAndForward(raw: Array[Byte], forwardTo: Set[ActorRef]) extends Message
@@ -140,7 +153,7 @@ object FeedReader{
   def generic[Feed <: DataFeed, Ch <: IOFeedChannel](feed: Feed,
                                                      forwarder: ActorRef,
                                                      read: Array[Byte] => Option[Feed#Data]) =
-    Props(classOf[GenericFeedReader[Feed, Ch]], feed, forwarder, read)
+    FeedReaderProps(Props(classOf[GenericFeedReader[Feed, Ch]], feed, forwarder, read))
 
   class GenericFeedReader[Feed <: DataFeed, Ch <: IOCommandChannel](val feed: Feed,
                                                                     forwarder: ActorRef,
@@ -157,14 +170,20 @@ object FeedReader{
   }
 }
 
-trait FeedNotifier{
-  type Feed <: DataFeed
+trait FeedNotifier extends Actor{
+  type NotifyFeed <: DataFeed
 
   def forwarder: ActorRef
-  def feed: Feed
+  def notifyFeed: NotifyFeed
 
   def on_? : Boolean
 
-  def notifyForwarder(data: Feed#Data) = if(on_?) forwarder ! Forward[Feed](feed, data)
+  def notifyForwarder(data: NotifyFeed#Data) = if(on_?) forwarder ! Forward[NotifyFeed](notifyFeed, data)
 
+}
+
+case class FeedNotifierProps(props: Props){ def get = props }
+
+object FeedNotifierProps{
+  def apply(clazz: Class[_], params: Any*) = new FeedNotifierProps(Props(clazz, params: _*))
 }

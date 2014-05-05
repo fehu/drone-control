@@ -6,17 +6,13 @@ import scala.concurrent.Await
 import feh.tec.drone.control.DroneApiCommands._
 import akka.util.Timeout
 import feh.tec.drone.control._
-import scala.concurrent.duration._
 import feh.tec.drone.control.DroneApiCommands.Move
-import akka.pattern.ask
 import scala.reflect.runtime.universe._
 
 class ControllerEmulator(val simulator: DroneSimulation[Emulator.Model],
-                         bForwarder: ActorRef => Props,
-                        implicit val asys: ActorSystem) extends Controller{
+                         startTimeout: Timeout,
+                         implicit val asys: ActorSystem) extends Controller{
   val ioControl = null
-
-  val forwarder = asys.actorOf(bForwarder(self))
 
   def watchdog = ???
 
@@ -28,15 +24,12 @@ class ControllerEmulator(val simulator: DroneSimulation[Emulator.Model],
 
   def msgControl: PartialFunction[Control.Message, Unit] = {
     case Control.Start =>
-      forwarder ! Control.Start
-
+      simulator.start(startTimeout)
     case Control.Stop =>
-      forwarder ! Control.Stop
+      simulator.stop
   }
   
-  def msgReq: PartialFunction[Controller.Req, Unit] = {
-    case Controller.GetForwarder => Controller.ForwarderRef(forwarder) 
-  }
+  def msgReq: PartialFunction[Controller.Req, Unit] = Map()
   
   def msgCommand: PartialFunction[ControlCommand, Unit] = {
     case Takeoff => ???
@@ -71,11 +64,12 @@ object Emulator{
     )
 
   def controllerProps(simulator: DroneSimulation[Model],
-                      bForwarder: ActorRef => Props)
+                      startTimeout: Timeout)
                      (implicit system: ActorSystem) =
-    Props(classOf[ControllerEmulator], simulator, bForwarder, system)
+    Props(classOf[ControllerEmulator], simulator, startTimeout, system)
 }
 
+/*
 object Test{
   val defaultTimeout = 10 millis span
   val gazCoeff = 50
@@ -99,4 +93,5 @@ object Test{
   
   val decider = ???
 }
+*/
 

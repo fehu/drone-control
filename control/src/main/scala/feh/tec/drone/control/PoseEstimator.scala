@@ -26,7 +26,7 @@ trait AbstractPoseEstimationFeed extends DataFeed{
 }
 
 trait PoseNotifier[Nav <: NavigationData] extends PoseEstimator[Nav] with FeedNotifier{
-  type Feed <: AbstractPoseEstimationFeed
+  type NotifyFeed <: AbstractPoseEstimationFeed
 
   def forwarded(data: Nav) = notifyForwarder(estimatePose(data))
 }
@@ -89,4 +89,36 @@ trait ByMeanVelocityNavdataDemoPoseEstimator extends ByNavdataDemoDiffPoseEstima
     val newPos/*: breeze.linalg.Vector[Double]*/ = lastPos.vector + dist
     newPos.toCoordinate
   }
+}
+
+class ByMeanVelocityNavdataDemoPoseEstimationFeed extends AbstractPoseEstimationFeed
+object ByMeanVelocityNavdataDemoPoseEstimationFeed extends ByMeanVelocityNavdataDemoPoseEstimationFeed{
+  def tag = ru.typeTag[ByMeanVelocityNavdataDemoPoseEstimationFeed]
+}
+
+object ByMeanVelocityNavdataDemoPoseEstimator{
+  class Impl(feed: NavdataDemoFeed,
+             val notifyFeed: ByMeanVelocityNavdataDemoPoseEstimationFeed,
+             navdataFeedTag: ru.TypeTag[_ <: NavdataDemoFeed],
+             envZero: Environment#Coordinate,
+             forwarderRef: ActorRef) extends ByNavdataDemoDiffPoseEstimator(feed, envZero)
+    with ByMeanVelocityNavdataDemoPoseEstimator
+    with PoseNotifier[NavdataDemo]
+  {
+    type NotifyFeed = ByMeanVelocityNavdataDemoPoseEstimationFeed
+    def forwarder = forwarderRef
+
+    val NavdataDemoFeedMatch = BuildDataMatcher(navdataFeedTag)
+    def buildData = {
+      case NavdataDemoFeedMatch(data) => data
+    }
+
+    var on_? = false
+    def start() = { on_? = true }
+    def stop() = { on_? = false }
+  }
+
+  def props[Feed <: NavdataDemoFeed: ru.TypeTag](feed: Feed, envZero: Environment#Coordinate, forwarder: ActorRef) =
+    FeedNotifierProps(classOf[Impl], feed, ru.typeTag[Feed], envZero, forwarder)
+
 }

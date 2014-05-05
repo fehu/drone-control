@@ -1,16 +1,14 @@
 package feh.tec.drone.control
 
-import akka.actor.Actor
-import feh.tec.drone.control.TacticalPlanner.{WaypointReached, WaypointsControl, SetWaypoints}
+import akka.actor.{Props, Actor}
+import feh.tec.drone.control.TacticalPlanner.{WaypointsControl, SetWaypoints}
 import feh.tec.matlab.{DroneSimulation, MatlabSimClient}
 import feh.tec.drone.control.util.Math.PowWrapper
 import feh.tec.drone.control.Coordinate.CoordinateOps
 import feh.tec.drone.control.matlab.DynControl
-import akka.util.Timeout
 import feh.tec.drone.control.Config.SimConfig
 import feh.tec.drone.control.DroneApiCommands.MoveFlag
 import scala.concurrent.Future
-import feh.tec.drone.control.DataForwarder.Forward
 import scala.reflect.runtime.universe._
 
 object TacticalPlanner{
@@ -123,4 +121,13 @@ class StraightLineTacticalPlanner(val env: Environment,
       DroneApiCommands.Move(MoveFlag.default, c.roll, c.pitch, c.yaw, c.gaz)
     )
   }
+}
+
+object StraightLineTacticalPlanner{
+  def props(env: Environment,
+            matlab: MatlabSimClient,
+            simConf: SimConfig,
+            poseEstimationFeedTag: TypeTag[_ <: AbstractPoseEstimationFeed],
+            pointDistance: Double) =
+    Props(classOf[StraightLineTacticalPlanner], env, matlab, simConf, poseEstimationFeedTag, pointDistance)
 }

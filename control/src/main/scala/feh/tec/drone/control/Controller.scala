@@ -1,9 +1,6 @@
 package feh.tec.drone.control
 
 import akka.actor._
-import akka.pattern.ask
-import scala.concurrent.{ExecutionContext, Future}
-import akka.util.Timeout
 import scala.reflect.runtime.universe._
 
 /**
@@ -13,7 +10,6 @@ import scala.reflect.runtime.universe._
  */
 trait Controller extends Actor{
   def ioControl: IOCommandChannel
-  def forwarder: ActorRef
 
   def watchdog: ActorRef
 }
@@ -77,9 +73,6 @@ trait IOFeedChannel extends IOChannel{
 object Controller{
   trait Req
   trait Resp
-
-  case object GetForwarder extends Req
-  case class ForwarderRef(ref: ActorRef) extends Resp
 }
 
 object Control{

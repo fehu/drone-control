@@ -1,8 +1,7 @@
 package feh.tec.drone.control
 
-import akka.actor.{ActorRef, Actor}
+import akka.actor.{Props, ActorRef, Actor}
 import feh.tec.drone.control.DataForwarder.Forward
-import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 
 /** Listens to data, obtained from IO channel(s)
