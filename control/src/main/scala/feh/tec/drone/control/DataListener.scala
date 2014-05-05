@@ -1,9 +1,41 @@
 package feh.tec.drone.control
 
+import akka.actor.{ActorRef, Actor}
+import feh.tec.drone.control.DataForwarder.Forward
+import scala.reflect.ClassTag
+import scala.reflect.runtime.universe._
+
 /** Listens to data, obtained from IO channel(s)
  */
-trait DataListener[Data]{
+trait DataListener[Data] extends Actor{
+  def feeds: Map[DataFeed, DataFeed#Data => Data]
 
+  protected def feedsEntry[F <: DataFeed](feed: F, build: F#Data => Data) =
+    (feed -> build).asInstanceOf[(DataFeed, DataFeed#Data => Data)]
+
+  type BuildData = PartialFunction[(DataFeed, DataFeed#Data), Data]
+
+  class BuildDataMatcher[F <: DataFeed](implicit tag: TypeTag[F]){
+    def unapply(p: (DataFeed, DataFeed#Data)): Option[F#Data] =
+      if(tag.tpe =:= p._1.dataTag.tpe) Some(p._2.asInstanceOf[F#Data]) else None
+  }
+  object BuildDataMatcher{
+    def apply[F <: DataFeed: TypeTag] = new BuildDataMatcher[F]
+  }
+
+//  def buildDataMatcher[F <: DataFeed](f: F) =
+
+  def buildData: BuildData
+
+  def forwarded(data: Data)
+  def start()
+  def stop()
+
+  def receive = {
+    case Forward(feed, data) if feeds contains feed => forwarded(buildData(feed -> data))
+    case Control.Start => start()
+    case Control.Stop => stop()
+  }
 }
 
 /** Analyses data to advise the decider (or other analyzers)
@@ -23,4 +55,10 @@ trait Watcher[Data] extends DataListener[Data]
  */
 trait Guardian[Data] extends DataListener[Data]{
 
+}
+
+/** Wrapper for DataListener ActorRef
+ */
+trait DataListenerRef[Data]{
+  def listener: ActorRef
 }

@@ -1,0 +1,795 @@
+## ardrone_api.h ########################################################################################################################################################################################################
+
+/**
+ * @struct _navdata_unpacked_t
+ * @brief Decoded navigation data.
+ */
+typedef struct _navdata_unpacked_t
+{
+  uint32_t  nd_seq;
+  uint32_t  ardrone_state;
+  bool_t    vision_defined;
+  uint32_t  last_navdata_refresh;  /*! mask showing which block was refreshed when receiving navdata */
+
+#define NAVDATA_OPTION_DEMO(STRUCTURE,NAME,TAG)  STRUCTURE NAME ;
+#define NAVDATA_OPTION(STRUCTURE,NAME,TAG)       STRUCTURE NAME ;
+#define NAVDATA_OPTION_CKS(STRUCTURE,NAME,TAG)
+	#include <navdata_keys.h>
+
+} navdata_unpacked_t;
+
+/**
+ * @def ardrone_navdata_unpack
+ * @brief Extract an'option' from the navdata network packet sent by the drone.
+ * Used by the client 'navdata' thread inside ARDroneTool.
+*/
+#define ardrone_navdata_unpack( navdata_ptr, option ) (navdata_option_t*) navdata_unpack_option( (uint8_t*) navdata_ptr, \
+                                                                                         navdata_ptr->size,              \
+                                                                                         (uint8_t*) &option,             \
+                                                                                         sizeof (option) )
+
+
+/**
+ * @fn navdata_unpack_option
+ * @brief Extract an 'option' from the navdata network packet sent by the drone.
+ * Used by the client 'navdata' thread inside ARDroneTool.
+*/
+static INLINE uint8_t* navdata_unpack_option( uint8_t* navdata_ptr, uint32_t ptrsize, uint8_t* data, uint32_t datasize )
+{
+  uint32_t minSize = (ptrsize < datasize) ? ptrsize : datasize;
+  vp_os_memcpy(data, navdata_ptr, minSize);
+  return (navdata_ptr + ptrsize);
+}
+
+## navdata.c ################################################################################################################################################################################################################################################
+
+
+/********************************************************************
+ * ardrone_navdata_unpack_all:
+ * @param navdata_unpacked  navdata_unpacked in which to store the navdata.
+ * @param navdata One packet read from the port NAVDATA.
+ * @param Checksum of navdata
+ * @brief Disassembles a buffer of received navdata, and dispatches
+ * it inside 'navdata_unpacked' structure.
+ * @DESCRIPTION
+ *
+ *******************************************************************/
+C_RESULT ardrone_navdata_unpack_all(navdata_unpacked_t* navdata_unpacked, navdata_t* navdata, uint32_t* cks)
+{
+  C_RESULT res;
+  navdata_cks_t navdata_cks = { 0 };
+  navdata_option_t* navdata_option_ptr;
+
+  navdata_option_ptr = (navdata_option_t*) &navdata->options[0];
+
+  vp_os_memset( navdata_unpacked, 0, sizeof(*navdata_unpacked) );
+
+  navdata_unpacked->nd_seq   = navdata->sequence;
+  navdata_unpacked->ardrone_state   = navdata->ardrone_state;
+  navdata_unpacked->vision_defined  = navdata->vision_defined;
+
+  res = C_OK;
+
+#ifdef DEBUG_NAVDATA_C
+  if (navdata_unpacked->ardrone_state & ARDRONE_COMMAND_MASK) { printf("[ACK]"); }
+  printf("Received navdatas tags :");
+#endif
+
+
+  while( navdata_option_ptr != NULL )
+  {
+    // Check if we have a valid option
+    if( navdata_option_ptr->size == 0 )
+    {
+      PRINT("One option (%d) is not a valid option because its size is zero\n", navdata_option_ptr->tag);
+      navdata_option_ptr = NULL;
+      res = C_FAIL;
+    }
+    else
+    {
+
+      if( navdata_option_ptr->tag <= NAVDATA_NUM_TAGS){
+			#ifdef DEBUG_NAVDATA_C
+    	  	 printf("[%d]",navdata_option_ptr->tag);
+			#endif
+    	  navdata_unpacked->last_navdata_refresh |= NAVDATA_OPTION_MASK(navdata_option_ptr->tag);
+      }
+
+
+
+      switch( navdata_option_ptr->tag )
+      {
+
+		  #define NAVDATA_OPTION(STRUCTURE,NAME,TAG) \
+			case TAG: \
+			navdata_option_ptr = ardrone_navdata_unpack( navdata_option_ptr, navdata_unpacked->NAME); \
+			break;
+
+			#define NAVDATA_OPTION_DEMO(STRUCTURE,NAME,TAG)  NAVDATA_OPTION(STRUCTURE,NAME,TAG)
+			#define NAVDATA_OPTION_CKS(STRUCTURE,NAME,TAG) {}
+
+			#include <navdata_keys.h>
+
+        case NAVDATA_CKS_TAG:
+          navdata_option_ptr = ardrone_navdata_unpack( navdata_option_ptr, navdata_cks );
+          *cks = navdata_cks.cks;
+          navdata_option_ptr = NULL; // End of structure
+          break;
+
+
+        default:
+          PRINT("Tag %d is an unknown navdata option tag\n", (int) navdata_option_ptr->tag);
+          navdata_option_ptr = (navdata_option_t *)(((uint32_t)navdata_option_ptr) + navdata_option_ptr->size);
+          break;
+      }
+    }
+  }
+
+  #ifdef DEBUG_NAVDATA_C
+		  printf("\n");
+  #endif
+
+  return res;
+}
+
+## vp_os_malloc.h ################################################################################################################################################################################################################################################
+
+static inline void *
+vp_os_memcpy(void *dest, const void *src, size_t n)
+{
+#ifdef DEBUG_MODE
+  void *res;
+  assert(dest);
+  res = memcpy(dest, src, n);
+  assert(res == dest);
+  return (res);
+#else // ! DEBUG_MODE
+  return memcpy(dest, src, n);
+#endif // <- DEBUG_MODE
+}
+
+## ardrone_tool.h ################################################################################################################################################################################################################################################
+
+\section Navdata
+
+Navdata works with a DHCP's option like system. This text is inspired by the rfc2132.
+
+\par
+Navdata items are carried in tagged data items that are stored in the options field of the navdata packet. The data items are also called "options". Basically an option is a declaration respecting the following format:
+
+\code
+  typedef struct _navdata_option_t {
+    // Common part
+    uint16_t  tag;
+    uint16_t  size;
+
+    // Opaque declaration
+    uint8_t   data[];
+  } navdata_option_t;
+\endcode
+
+For example :
+
+\code
+  typedef struct _navdata_demo_t {
+    // Common part
+    uint16_t    tag;
+    uint16_t    size;
+
+    // Specialize part
+    uint32_t    ctrl_state;
+    uint32_t    vbat_flying_percentage;
+
+    float32_t   theta;
+    float32_t   phi;
+    float32_t   psi;
+
+    int32_t     altitude;
+
+    float32_t   vx;
+    float32_t   vy;
+  } navdata_demo_t;
+\endcode
+
+A navdata packet follow the following prototype:
+
+\code
+  typedef struct _navdata_t {
+    uint32_t    header;
+    uint32_t    ardrone_state;
+    uint32_t    sequence;
+    bool_t      vision_defined;
+
+    navdata_option_t  options[1];
+  } navdata_t;
+\endcode
+
+\par
+At the moment of we write this document, developper can choose to send all navdata or only a prefdefined subset called Navdata Demo by using a ardrone config variable called navdata_demo. Navdata demo defines minimum data ARDrone must sent to a remote host
+
+\subsection navdata_list List of navdata options.
+
+In the following subsection we described all the currently available navdata options and their meanings.
+
+<TABLE>
+<TR><TH>Option</TH><TH>Description</TH></TR>
+<TR><TH>NAVDATA_DEMO</TH><TH>Minimum data needed</TH></TR>
+<TR><TH>NAVDATA_TIME</TH><TH>ARDrone current time</TH></TR>
+<TR><TH>NAVDATA_RAW_MEASURES</TH><TH>Raw measures (acceleros & gyros) coming from PIC</TH></TR>
+<TR><TH>NAVDATA_PHYS_MEASURES</TH><TH>Filtered values after control processing</TH></TR>
+<TR><TH>NAVDATA_GYROS_OFFSETS</TH><TH>Gyros offsets</TH></TR>
+<TR><TH>NAVDATA_EULER_ANGLES</TH><TH>Fused euler angles</TH></TR>
+<TR><TH>NAVDATA_REFERENCES</TH><TH></TH></TR>
+<TR><TH>NAVDATA_TRIMS</TH><TH></TH></TR>
+<TR><TH>NAVDATA_RC_REFERENCES</TH><TH></TH></TR>
+<TR><TH>NAVDATA_PWM</TH><TH>Data used to control motors</TH></TR>
+<TR><TH>NAVDATA_ALTITUDE</TH><TH>Estimated values with a relation to altitude</TH></TR>
+<TR><TH>NAVDATA_VISION_RAW</TH><TH>Vision's estimated velocities</TH></TR>
+<TR><TH>NAVDATA_VISION</TH><TH>Data used when computing vision</TH></TR>
+<TR><TH>NAVDATA_VISION_PERF</TH><TH>Performance data collected when profiling vision code</TH></TR>
+<TR><TH>NAVDATA_TRACKERS_SEND</TH><TH>Position of all trackers computed by vision</TH></TR>
+<TR><TH>NAVDATA_VISION_DETECT</TH><TH>Position of the chemney detected by vision</TH></TR>
+<TR><TH>NAVDATA_WATCHDOG</TH><TH>Tells if there was an anormal delay between two navdata packets</TH></TR>
+<TR><TH>NAVDATA_IPHONE_ANGLES</TH><TH>Used to send back to iPhone its attitude (was an attempt to compute latency between ardrone & iPhone)</TH></TR>
+<TR><TH>NAVDATA_ADC_DATA_FRAME</TH><TH>Used in remote control. Sends data frame coming from PIC</TH></TR>
+<TR><TH>NAVDATA_CKS</TH><TH>Description</TH></TR>
+
+\subsection navdata_new Adding/Customizing navdata options
+
+\par
+
+When updating a navdata option or adding a navdata option one must take care to update the following files too:
+
+   <ul>
+   <li> navdata_server.h and navdata_server.c in \ref Toy
+   <li> navdata.h and navdata.c in Soft/Lib/Control
+   <li> any navdata handler (in particular ardrone_navdata_file.c in \ref ARDrone_Tool )
+   </ul>
+
+\note
+There's a way to ease this process by defining an header file like config_keys.h (TODO list ;-))
+
+\subsection navdata_handling Handling navdata options
+
+\par
+ARDrone Tools provides facility to handle navdata options. First ARDrone Tool will established a connection, as a client, on port 5554, when application starts (it handles timeout and reconnections). Then it will listen to navdata's udp packets to parse navdata options found inside them. We called this functionnality unpacking and it is implemented in Control library (Soft/Lib/Control/navdata.c).
+
+\par
+When all options are parsed, navdata handlers are called to allow user to manipulate navdata options. Some handlers are predefined. The most important one is ardrone_navdata_file that registers all incomming navdata in local storage.
+
+\par
+To add a new handler, a developper have to implement three functions:
+
+   <ul>
+   <li> an init function
+   <li> a process function
+   <li> a release function
+   </ul>
+
+The init and release functions are called only once and the process function is called whenever a new navdata packet is received. The init function can receive any data as a parameter (see ardrone_navdataf_file.c or navdata_ihm.c if you want examples).
+
+\subsection navdata_control Relationship between flashing/updating and configuration by wifi and navdata
+
+\par
+Navdata are also used to regulate data we send to ARDrone. We find out there was problem to send big amount of data (some packets were lost). We decided to split large amount of data in smaller packets and to use navdata to delay their sending.
+
+\par
+
+This approach was generalized to send all files to ARDrone:
+
+   <ul>
+   <li> Update file for P5P software [ARDRONE_UPDATE_CONTROL_MODE]
+   <li> Update file for ADC software [PIC_UPDATE_CONTROL_MODE]
+   </ul>
+
+to ask for files containing:
+
+   <ul>
+   <li> Configuration data (ini file) [CFG_GET_CONTROL_MODE]
+   <li> Log of previous flies [LOGS_GET_CONTROL_MODE]
+   </ul>
+
+and to know when some commands sent over UDP (for example AT_MSG_ATCMD_CONFIG_EXE) are received by setting a flag in navdata's ardrone_state (ARDRONE_COMMAND_MASK).
+
+\note
+CONTROL is perhaps a badly choosen name.
+
+## navdata_common.h ################################################################################################################################################################################################################################################
+
+#if defined(_MSC_VER)
+	#define _ATTRIBUTE_PACKED_
+	/* Asks Visual C++ to pack structures from now on*/
+	#pragma pack(1)
+#else
+	#define _ATTRIBUTE_PACKED_  __attribute__ ((packed))
+#endif
+
+/**
+ * @brief Navdata structure sent over the network.
+ */
+typedef struct _navdata_t {
+  uint32_t    header;			/*!< Always set to NAVDATA_HEADER */
+  uint32_t    ardrone_state;    /*!< Bit mask built from def_ardrone_state_mask_t */
+  uint32_t    sequence;         /*!< Sequence number, incremented for each sent packet */
+  bool_t      vision_defined;
+
+  navdata_option_t  options[1];
+}_ATTRIBUTE_PACKED_ navdata_t;
+
+
+typedef struct _navdata_option_t {
+  uint16_t  tag;
+  uint16_t  size;
+#if defined _MSC_VER || defined (__ARMCC_VERSION)
+  /* Do not use flexible arrays (C99 feature) with these compilers */
+  uint8_t   data[1];
+#else
+  uint8_t   data[];
+#endif
+} navdata_option_t;
+
+/**
+ * All navdata options can be extended (new values AT THE END) except navdata_demo whose size must be constant across versions
+ * New navdata options may be added, but must not be sent in navdata_demo mode unless requested by navdata_options.
+ */
+
+/*----------------------------------------------------------------------------*/
+/**
+ * @brief Minimal navigation data for all flights.
+ */
+typedef struct _navdata_demo_t {
+  uint16_t    tag;					  /*!< Navdata block ('option') identifier */
+  uint16_t    size;					  /*!< set this to the size of this structure */
+
+  uint32_t    ctrl_state;             /*!< Flying state (landed, flying, hovering, etc.) defined in CTRL_STATES enum. */
+  uint32_t    vbat_flying_percentage; /*!< battery voltage filtered (mV) */
+
+  float32_t   theta;                  /*!< UAV's pitch in milli-degrees */
+  float32_t   phi;                    /*!< UAV's roll  in milli-degrees */
+  float32_t   psi;                    /*!< UAV's yaw   in milli-degrees */
+
+  int32_t     altitude;               /*!< UAV's altitude in centimeters */
+
+  float32_t   vx;                     /*!< UAV's estimated linear velocity */
+  float32_t   vy;                     /*!< UAV's estimated linear velocity */
+  float32_t   vz;                     /*!< UAV's estimated linear velocity */
+
+  uint32_t    num_frames;			  /*!< streamed frame index */ // Not used -> To integrate in video stage.
+
+  // Camera parameters compute by detection
+  matrix33_t  detection_camera_rot;   /*!<  Deprecated ! Don't use ! */
+  vector31_t  detection_camera_trans; /*!<  Deprecated ! Don't use ! */
+  uint32_t	  detection_tag_index;    /*!<  Deprecated ! Don't use ! */
+
+  uint32_t	  detection_camera_type;  /*!<  Type of tag searched in detection */
+
+  // Camera parameters compute by drone
+  matrix33_t  drone_camera_rot;		  /*!<  Deprecated ! Don't use ! */
+  vector31_t  drone_camera_trans;	  /*!<  Deprecated ! Don't use ! */
+}_ATTRIBUTE_PACKED_ navdata_demo_t;
+
+
+
+
+/*----------------------------------------------------------------------------*/
+/**
+ * @brief Raw sensors measurements
+ */
+typedef struct _navdata_raw_measures_t {
+  uint16_t  tag;
+  uint16_t  size;
+
+  // +12 bytes
+  uint16_t  raw_accs[NB_ACCS];    // filtered accelerometers
+  int16_t   raw_gyros[NB_GYROS];  // filtered gyrometers
+  int16_t   raw_gyros_110[2];     // gyrometers  x/y 110 deg/s
+  uint32_t  vbat_raw;             // battery voltage raw (mV)
+  uint16_t  us_debut_echo;
+  uint16_t  us_fin_echo;
+  uint16_t  us_association_echo;
+  uint16_t  us_distance_echo;
+  uint16_t  us_courbe_temps;
+  uint16_t  us_courbe_valeur;
+  uint16_t  us_courbe_ref;
+  uint16_t  flag_echo_ini;
+  // TODO:   uint16_t  frame_number; // from ARDrone_Magneto
+  uint16_t  nb_echo;
+  uint32_t  sum_echo;
+  int32_t   alt_temp_raw;
+  int16_t   gradient;
+}_ATTRIBUTE_PACKED_ navdata_raw_measures_t;
+
+
+// split next struc into magneto_navdata_t and pressure_navdata_t
+typedef struct _navdata_pressure_raw_t {
+  uint16_t   tag;
+  uint16_t   size;
+
+  int32_t   up;
+  int16_t   ut;
+  int32_t   Temperature_meas;
+  int32_t   Pression_meas;
+}_ATTRIBUTE_PACKED_ navdata_pressure_raw_t;
+
+typedef struct _navdata_magneto_t {
+  uint16_t   tag;
+  uint16_t   size;
+
+  int16_t   	mx;
+  int16_t   	my;
+  int16_t   	mz;
+  vector31_t 	magneto_raw;       // magneto in the body frame, in mG
+  vector31_t 	magneto_rectified;
+  vector31_t 	magneto_offset;
+  float32_t 	heading_unwrapped;
+  float32_t 	heading_gyro_unwrapped;
+  float32_t 	heading_fusion_unwrapped;
+  char 			magneto_calibration_ok;
+  uint32_t      magneto_state;
+  float32_t 	magneto_radius;
+  float32_t     error_mean;
+  float32_t     error_var;
+
+}_ATTRIBUTE_PACKED_ navdata_magneto_t;
+
+typedef struct _navdata_wind_speed_t {
+  uint16_t   tag;
+  uint16_t   size;
+
+  float32_t wind_speed;			// estimated wind speed [m/s]
+  float32_t wind_angle;			// estimated wind direction in North-East frame [rad] e.g. if wind_angle is pi/4, wind is from South-West to North-East
+  float32_t wind_compensation_theta;
+  float32_t wind_compensation_phi;
+  float32_t state_x1;
+  float32_t state_x2;
+  float32_t state_x3;
+  float32_t state_x4;
+  float32_t state_x5;
+  float32_t state_x6;
+  float32_t magneto_debug1;
+  float32_t magneto_debug2;
+  float32_t magneto_debug3;
+}_ATTRIBUTE_PACKED_ navdata_wind_speed_t;
+
+typedef struct _navdata_kalman_pressure_t{
+  uint16_t   tag;
+  uint16_t   size;
+
+  float32_t offset_pressure;
+  float32_t est_z;
+  float32_t est_zdot;
+  float32_t est_bias_PWM;
+  float32_t est_biais_pression;
+  float32_t offset_US;
+  float32_t prediction_US;
+  float32_t cov_alt;
+  float32_t cov_PWM;
+  float32_t cov_vitesse;
+  bool_t    bool_effet_sol;
+  float32_t somme_inno;
+  bool_t    flag_rejet_US;
+  float32_t u_multisinus;
+  float32_t gaz_altitude;
+  bool_t    Flag_multisinus;
+  bool_t    Flag_multisinus_debut;
+}_ATTRIBUTE_PACKED_ navdata_kalman_pressure_t;
+
+// TODO: depreciated struct ? remove it ?
+typedef struct navdata_zimmu_3000_t {
+uint16_t   tag;
+uint16_t   size;
+
+	int32_t vzimmuLSB;
+	float32_t vzfind;
+
+}_ATTRIBUTE_PACKED_ navdata_zimmu_3000_t;
+
+typedef struct _navdata_phys_measures_t {
+  uint16_t   tag;
+  uint16_t   size;
+
+  float32_t   accs_temp;
+  uint16_t    gyro_temp;
+  float32_t   phys_accs[NB_ACCS];
+  float32_t   phys_gyros[NB_GYROS];
+  uint32_t    alim3V3;              // 3.3volt alim [LSB]
+  uint32_t    vrefEpson;            // ref volt Epson gyro [LSB]
+  uint32_t    vrefIDG;              // ref volt IDG gyro [LSB]
+}_ATTRIBUTE_PACKED_ navdata_phys_measures_t;
+
+
+typedef struct _navdata_gyros_offsets_t {
+  uint16_t   tag;
+  uint16_t   size;
+
+  float32_t offset_g[NB_GYROS];
+}_ATTRIBUTE_PACKED_ navdata_gyros_offsets_t;
+
+
+typedef struct _navdata_euler_angles_t {
+  uint16_t   tag;
+  uint16_t   size;
+
+  float32_t   theta_a;
+  float32_t   phi_a;
+}_ATTRIBUTE_PACKED_ navdata_euler_angles_t;
+
+
+typedef struct _navdata_references_t {
+  uint16_t   tag;
+  uint16_t   size;
+
+  int32_t   ref_theta;
+  int32_t   ref_phi;
+  int32_t   ref_theta_I;
+  int32_t   ref_phi_I;
+  int32_t   ref_pitch;
+  int32_t   ref_roll;
+  int32_t   ref_yaw;
+  int32_t   ref_psi;
+
+  float32_t vx_ref;
+	float32_t vy_ref;
+	float32_t theta_mod;
+	float32_t phi_mod;
+
+	float32_t k_v_x;
+	float32_t k_v_y;
+	uint32_t  k_mode;
+
+	float32_t ui_time;
+	float32_t ui_theta;
+	float32_t ui_phi;
+	float32_t ui_psi;
+	float32_t ui_psi_accuracy;
+	int32_t ui_seq;
+
+}_ATTRIBUTE_PACKED_ navdata_references_t;
+
+
+typedef struct _navdata_trims_t {
+  uint16_t   tag;
+  uint16_t   size;
+
+  float32_t angular_rates_trim_r;
+  float32_t euler_angles_trim_theta;
+  float32_t euler_angles_trim_phi;
+}_ATTRIBUTE_PACKED_ navdata_trims_t;
+
+typedef struct _navdata_rc_references_t {
+  uint16_t   tag;
+  uint16_t   size;
+
+  int32_t    rc_ref_pitch;
+  int32_t    rc_ref_roll;
+  int32_t    rc_ref_yaw;
+  int32_t    rc_ref_gaz;
+  int32_t    rc_ref_ag;
+}_ATTRIBUTE_PACKED_ navdata_rc_references_t;
+
+
+typedef struct _navdata_pwm_t {
+  uint16_t   tag;
+  uint16_t   size;
+
+  uint8_t     motor1;
+  uint8_t     motor2;
+  uint8_t     motor3;
+  uint8_t     motor4;
+  uint8_t	  sat_motor1;
+  uint8_t	  sat_motor2;
+  uint8_t	  sat_motor3;
+  uint8_t	  sat_motor4;
+  float32_t   gaz_feed_forward;
+  float32_t   gaz_altitude;
+  float32_t   altitude_integral;
+  float32_t   vz_ref;
+  int32_t     u_pitch;
+  int32_t     u_roll;
+  int32_t     u_yaw;
+  float32_t   yaw_u_I;
+  int32_t     u_pitch_planif;
+  int32_t     u_roll_planif;
+  int32_t     u_yaw_planif;
+  float32_t   u_gaz_planif;
+  uint16_t    current_motor1;
+  uint16_t    current_motor2;
+  uint16_t    current_motor3;
+  uint16_t    current_motor4;
+	//WARNING: new navdata (FC 26/07/2011)
+	float32_t 	altitude_prop;
+	float32_t 	altitude_der;
+}_ATTRIBUTE_PACKED_ navdata_pwm_t;
+
+
+typedef struct _navdata_altitude_t {
+  uint16_t   tag;
+  uint16_t   size;
+
+  int32_t   altitude_vision;
+  float32_t altitude_vz;
+  int32_t   altitude_ref;
+  int32_t   altitude_raw;
+
+	float32_t		obs_accZ;
+	float32_t 	obs_alt;
+	vector31_t 	obs_x;
+	uint32_t 		obs_state;
+	vector21_t	est_vb;
+	uint32_t 		est_state ;
+
+}_ATTRIBUTE_PACKED_ navdata_altitude_t;
+
+
+typedef struct _navdata_vision_raw_t {
+  uint16_t   tag;
+  uint16_t   size;
+
+  float32_t vision_tx_raw;
+  float32_t vision_ty_raw;
+  float32_t vision_tz_raw;
+}_ATTRIBUTE_PACKED_ navdata_vision_raw_t;
+
+
+typedef struct _navdata_vision_t {
+  uint16_t   tag;
+  uint16_t   size;
+
+  uint32_t   vision_state;
+  int32_t    vision_misc;
+  float32_t  vision_phi_trim;
+  float32_t  vision_phi_ref_prop;
+  float32_t  vision_theta_trim;
+  float32_t  vision_theta_ref_prop;
+
+  int32_t    new_raw_picture;
+  float32_t  theta_capture;
+  float32_t  phi_capture;
+  float32_t  psi_capture;
+  int32_t    altitude_capture;
+  uint32_t   time_capture;     // time in TSECDEC format (see config.h)
+  velocities_t body_v;
+
+  float32_t  delta_phi;
+  float32_t  delta_theta;
+  float32_t  delta_psi;
+
+	uint32_t  gold_defined;
+	uint32_t  gold_reset;
+	float32_t gold_x;
+	float32_t gold_y;
+}_ATTRIBUTE_PACKED_ navdata_vision_t;
+
+
+typedef struct _navdata_vision_perf_t {
+  uint16_t   tag;
+  uint16_t   size;
+
+  // +44 bytes
+  float32_t  time_szo;
+  float32_t  time_corners;
+  float32_t  time_compute;
+  float32_t  time_tracking;
+  float32_t  time_trans;
+  float32_t  time_update;
+	float32_t  time_custom[NAVDATA_MAX_CUSTOM_TIME_SAVE];
+}_ATTRIBUTE_PACKED_ navdata_vision_perf_t;
+
+
+typedef struct _navdata_trackers_send_t {
+  uint16_t   tag;
+  uint16_t   size;
+
+  int32_t locked[DEFAULT_NB_TRACKERS_WIDTH * DEFAULT_NB_TRACKERS_HEIGHT];
+  screen_point_t point[DEFAULT_NB_TRACKERS_WIDTH * DEFAULT_NB_TRACKERS_HEIGHT];
+}_ATTRIBUTE_PACKED_ navdata_trackers_send_t;
+
+
+typedef struct _navdata_vision_detect_t {
+	/* !! Change the function 'navdata_server_reset_vision_detect()' if this structure is modified !! */
+  uint16_t   tag;
+  uint16_t   size;
+
+  uint32_t   nb_detected;
+  uint32_t   type[NB_NAVDATA_DETECTION_RESULTS];
+  uint32_t   xc[NB_NAVDATA_DETECTION_RESULTS];
+  uint32_t   yc[NB_NAVDATA_DETECTION_RESULTS];
+  uint32_t   width[NB_NAVDATA_DETECTION_RESULTS];
+  uint32_t   height[NB_NAVDATA_DETECTION_RESULTS];
+  uint32_t   dist[NB_NAVDATA_DETECTION_RESULTS];
+  float32_t  orientation_angle[NB_NAVDATA_DETECTION_RESULTS];
+  matrix33_t rotation[NB_NAVDATA_DETECTION_RESULTS];
+  vector31_t translation[NB_NAVDATA_DETECTION_RESULTS];
+  uint32_t   camera_source[NB_NAVDATA_DETECTION_RESULTS];
+}_ATTRIBUTE_PACKED_ navdata_vision_detect_t;
+
+typedef struct _navdata_vision_of_t {
+  uint16_t   tag;
+  uint16_t   size;
+
+  float32_t   of_dx[5];
+  float32_t   of_dy[5];
+}_ATTRIBUTE_PACKED_ navdata_vision_of_t;
+
+
+typedef struct _navdata_watchdog_t {
+  uint16_t   tag;
+  uint16_t   size;
+
+  // +4 bytes
+  int32_t    watchdog;
+}_ATTRIBUTE_PACKED_ navdata_watchdog_t;
+
+typedef struct _navdata_adc_data_frame_t {
+  uint16_t  tag;
+  uint16_t  size;
+
+  uint32_t  version;
+  uint8_t   data_frame[32];
+}_ATTRIBUTE_PACKED_ navdata_adc_data_frame_t;
+
+typedef struct _navdata_video_stream_t {
+  uint16_t  tag;
+  uint16_t  size;
+
+  uint8_t 	quant;			// quantizer reference used to encode frame [1:31]
+  uint32_t	frame_size;		// frame size (bytes)
+  uint32_t	frame_number;	// frame index
+  uint32_t	atcmd_ref_seq;  // atmcd ref sequence number
+  uint32_t	atcmd_mean_ref_gap;	// mean time between two consecutive atcmd_ref (ms)
+  float32_t atcmd_var_ref_gap;
+  uint32_t	atcmd_ref_quality; // estimator of atcmd link quality
+
+  // drone2
+  uint32_t  out_bitrate;     // measured out throughput from the video tcp socket
+  uint32_t  desired_bitrate; // last frame size generated by the video encoder
+
+  // misc temporary data
+  int32_t  data1;
+  int32_t  data2;
+  int32_t  data3;
+  int32_t  data4;
+  int32_t  data5;
+
+  // queue usage
+  uint32_t tcp_queue_level;
+  uint32_t fifo_queue_level;
+
+}_ATTRIBUTE_PACKED_ navdata_video_stream_t;
+
+typedef enum
+{
+	NAVDATA_HDVIDEO_STORAGE_FIFO_IS_FULL = (1<<0),
+	NAVDATA_HDVIDEO_USBKEY_IS_PRESENT   = (1<<8),
+	NAVDATA_HDVIDEO_USBKEY_IS_RECORDING = (1<<9),
+	NAVDATA_HDVIDEO_USBKEY_IS_FULL      = (1<<10)
+}_navdata_hdvideo_states_t;
+
+
+typedef struct _navdata_hdvideo_stream_t {
+  uint16_t  tag;
+  uint16_t  size;
+
+  uint32_t hdvideo_state;
+  uint32_t storage_fifo_nb_packets;
+  uint32_t storage_fifo_size;
+  uint32_t usbkey_size;         /*! USB key in kbytes - 0 if no key present */
+  uint32_t usbkey_freespace;    /*! USB key free space in kbytes - 0 if no key present */
+  uint32_t frame_number;        /*! 'frame_number' PaVE field of the frame starting to be encoded for the HD stream */
+  uint32_t usbkey_remaining_time; /*! time in seconds */
+
+}_ATTRIBUTE_PACKED_ navdata_hdvideo_stream_t;
+
+
+typedef struct _navdata_games_t {
+  uint16_t  tag;
+  uint16_t  size;
+  uint32_t  double_tap_counter;
+  uint32_t  finish_line_counter;
+}_ATTRIBUTE_PACKED_ navdata_games_t;
+
+typedef struct _navdata_wifi_t {
+  uint16_t  tag;
+  uint16_t  size;
+  uint32_t link_quality;
+}_ATTRIBUTE_PACKED_  navdata_wifi_t;

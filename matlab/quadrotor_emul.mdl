@@ -1,12 +1,12 @@
 Model {
-  Name			  "quadrotor_emul"
+  Name			  "quadrotor_emul_b"
   Version		  7.9
   MdlSubVersion		  0
   GraphicalInterface {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.56"
+    ComputedModelVersion    "1.57"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -29,9 +29,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "fehu"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Tue Mar 11 20:27:49 2014"
-  RTWModifiedTimeStamp	  316466841
-  ModelVersionFormat	  "1.%<AutoIncrement:56>"
+  LastModifiedDate	  "Sun May 04 21:56:00 2014"
+  RTWModifiedTimeStamp	  321140662
+  ModelVersionFormat	  "1.%<AutoIncrement:57>"
   ConfigurationManager	  "None"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -797,7 +797,7 @@ Model {
     }
   }
   System {
-    Name		    "quadrotor_emul"
+    Name		    "quadrotor_emul_b"
     Location		    [380, 259, 1467, 908]
     Open		    on
     ModelBrowserVisibility  off
@@ -1308,7 +1308,7 @@ MatData {
 Stateflow {
   machine {
     id			    1
-    name		    "quadrotor_emul"
+    name		    "quadrotor_emul_b"
     created		    "26-Feb-2014 23:48:42"
     isLibrary		    0
     firstTarget		    2

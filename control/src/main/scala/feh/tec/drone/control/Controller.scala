@@ -1,7 +1,10 @@
 package feh.tec.drone.control
 
-import akka.actor.{ActorRef, Actor}
-import scala.reflect.ClassTag
+import akka.actor._
+import akka.pattern.ask
+import scala.concurrent.{ExecutionContext, Future}
+import akka.util.Timeout
+import scala.reflect.runtime.universe._
 
 /**
  * Establishes connection,
@@ -9,45 +12,99 @@ import scala.reflect.ClassTag
  * // maintains connection (watchdog) 
  */
 trait Controller extends Actor{
-  type ControlCommand
-  
   def ioControl: IOCommandChannel
   def forwarder: ActorRef
 
   def watchdog: ActorRef
 }
 
-/**
- * Forwards data read from drone feeds to listeners
- */
-trait DataForwarder extends Actor{
-  def ioData: Seq[DataFeed]
-  def feedReaders: Map[DataFeed, ActorRef]
-  
-  def listeners: Map[ActorRef, Set[DataFeed]]
-  
-  trait FeedReader extends Actor{
-    def feed: DataFeed
-    def read(): DataFeed#Data
+trait DataFeed{
+  type Data
+  def dataTag: TypeTag[Data]
+//  def parseData: Array[Byte] => Data
+}
+
+/*sealed trait DataFeedRef[Data]{
+  def buildData: PartialFunction[DataFeed, Data]
+  def toList: List[DataFeed]
+  def toSet: Set[DataFeed]
+}
+
+case class SingleFeedRef[Data, Feed <: DataFeed](feed: Feed, buildData: Feed => Data) extends DataFeedRef[Data]{
+  def toList = feed :: Nil
+  def toSet = Set(feed)
+}
+
+case class MultipleFeedsRef[Data](head: DataFeedRef[Data],
+                                  tail: MultipleFeedsRef[Data]) extends DataFeedRef[Data]{
+  lazy val feedsRef = {
+    def rec(ref: DataFeedRef[Data]): List[SingleFeedRef[Data, DataFeed]] = ref match{
+      case ref@SingleFeedRef(_, _) => ref :: Nil
+      case MultipleFeedsRef(left, right) => rec(left) ::: rec(right)
+    }
+    rec(this)
+  }
+  lazy val refsMap = feedsRef.map(ref => ref.feed -> ref).toMap
+
+  def toList = feedsRef.map(_.feed)
+  def toSet = toList.toSet
+
+//  def buildData = feed =>
+//    feedsRef.find(_.feed == feed).map(_.buildData(feed)) getOrElse sys.error(s"feed $feed not supported by $this")
+  def buildData = {
+    case feed if refsMap.contains(feed) => refsMap(feed).buildData
   }
 }
 
-trait DataFeed{
-  type Data
-
-  def channel: IOFeedChannel
-  def parseData: Array[Byte] => Data
-}
+object FeedsRef{
+  def create[Data](feeds: DataFeed*)(build: PartialFunction[DataFeed, Data]): DataFeedRef[Data] =
+    if(feeds.size == 1) SingleFeedRef(feeds.head, build)
+    else MultipleFeedsRef(SingleFeedRef(feeds.head, build), create())
+}*/
 
 trait IOChannel{
-
+  def connected_? : Boolean
 }
 
 trait IOCommandChannel extends IOChannel{
-
+  def write(b: Array[Byte])
 }
 
 trait IOFeedChannel extends IOChannel{
-
+  def read(): Option[Array[Byte]]
 }
+
+object Controller{
+  trait Req
+  trait Resp
+
+  case object GetForwarder extends Req
+  case class ForwarderRef(ref: ActorRef) extends Resp
+}
+
+object Control{
+  trait Message
+  trait Response{
+    def success: Boolean
+    final def failure = !success
+  }
+
+  case object Start extends Message
+  case object Stop extends Message
+
+  type Success = Success.type
+  case object Success extends Response { def success = true }
+  case class Error(thr: Throwable) extends Response { def success = false }
+  
+/*
+  def sendAndForwardResponses(msg: Control.Message, receivers: Seq[ActorRef], responseReceiver: ActorRef)
+                            (implicit timeout: Timeout, execContext: ExecutionContext) =
+    Future.sequence(receivers.map(receiver => (receiver ? msg).mapTo[Control.Response])) map {
+      r =>
+        if(r.forall(_.success)) responseReceiver ! Control.Success
+        else r.withFilter(_.failure).foreach(responseReceiver !)
+    }
+*/
+}
+
 

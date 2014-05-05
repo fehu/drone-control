@@ -10,7 +10,7 @@ object  Build extends sbt.Build {
 
   val ScalaVersion = "2.10.3"
   val Version = "0.2"
-  val MatlabPath = sys.env.getOrElse("MATLAB_HOME", sys.error("set MATLAB_HOME environment variable"))
+  lazy val MatlabPath = sys.env.getOrElse("MATLAB_HOME", sys.error("set MATLAB_HOME environment variable"))
 
   import Resolvers._
   import Dependencies._
@@ -29,15 +29,16 @@ object  Build extends sbt.Build {
 
   object Resolvers{
     object Release{
-      val sonatype = "Sonatype Releases" at "http://oss.sonatype.org/content/repositories/releases"
-      val spray = "spray" at "http://repo.spray.io/"
+      lazy val sonatype = "Sonatype Releases" at "http://oss.sonatype.org/content/repositories/releases"
+      lazy val spray = "spray" at "http://repo.spray.io/"
     }
 
     object Snapshot{
-      val sonatype = "Sonatype Snapshots" at "http://oss.sonatype.org/content/repositories/snapshots"
-      val eulergui = "eulergui" at "http://eulergui.sourceforge.net/maven2"
+      lazy val sonatype = "Sonatype Snapshots" at "http://oss.sonatype.org/content/repositories/snapshots"
+      lazy val eulergui = "eulergui" at "http://eulergui.sourceforge.net/maven2"
     }
 
+    def sonatype = Resolvers.Release.sonatype :: Resolvers.Snapshot.sonatype :: Nil
   }
 
   object Dependencies{
@@ -49,7 +50,6 @@ object  Build extends sbt.Build {
       lazy val actor = "com.typesafe.akka" %% "akka-actor" % akkaVersion
       lazy val remote = "com.typesafe.akka" %% "akka-remote" % akkaVersion
     }
-
 
 
     object scala{
@@ -96,6 +96,17 @@ object  Build extends sbt.Build {
         lazy val graphviz = "feh.dsl" %% "graphviz" % "0.1"
       }
     }
+
+    object Bundle{
+      lazy val breeze = Seq(
+        resolvers ++= Resolvers.sonatype,
+        libraryDependencies ++= Seq(
+          "org.scalanlp" % "breeze_2.10" % "0.7-SNAPSHOT",
+          "org.scalanlp" % "breeze-natives_2.10" % "0.7-SNAPSHOT"
+        )
+      )
+    }
+
   }
 
   // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // //
@@ -113,14 +124,27 @@ object  Build extends sbt.Build {
         IO.createDirectory(dir)
         dir / jar
     },
+    mergeStrategy in assembly <<= (mergeStrategy in assembly, resourceDirectory in Compile){
+      (old, resources) =>
+        val mJars = ServerResourceDirectory.fromResource(resources).list().filter(_.endsWith(".jar"))
+
+        {
+          case jar if jar.endsWith(".jar") && mJars.contains(jar) => MergeStrategy.discard
+          case x => old(x)
+        }
+    },
     buildServerJar <<= state map { state =>
       val extracted = Project.extract(state)
       val newState = extracted append (Seq(
-        resourceDirectory in Compile <<= (resourceDirectory in Compile) { dir => file(dir.getPath + "-server") }
+        resourceDirectory in Compile <<= (resourceDirectory in Compile) { ServerResourceDirectory.fromResource }
       ), state)
       Project.runTask(assembly, newState)
     }
     )
+
+  object ServerResourceDirectory{
+    def fromResource(dir: File): File = file(dir.getPath + "-server")
+  }
 
   // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // //
 
@@ -137,9 +161,10 @@ object  Build extends sbt.Build {
     id = "drone-control",
     base = file("control"),
     settings = buildSettings ++ Seq(
-      libraryDependencies ++= Seq(akka.actor, feh.util)
-    )
-  )
+//      resolvers ++= Seq(Release.scalaNLP, Snapshot.scalaTools),
+      libraryDependencies ++= Seq(akka.actor, feh.util /*scalala*/)
+    ) ++ Bundle.breeze
+  ) dependsOn matlab
 
   lazy val matlab = Project(
     id = "matlab-connection",
@@ -153,7 +178,7 @@ object  Build extends sbt.Build {
           |import feh.tec.matlab.server.Default.system._
           |import feh.tec.matlab._
           |val cl = new MatlabSimClient(server.Default.sel)
-          |val sim = new DroneSimulation(PCorke.Model, cl, 30 seconds)
+          |val sim = new DroneSimulation(QuadModel.Drone, cl, 10 millis)
         """.stripMargin
     )
   )

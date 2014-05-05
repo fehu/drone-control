@@ -72,16 +72,16 @@ simulation.init() map {
 `**` _slightly modified P. Corke's quadcopter model_
 
 ------------------
-#### This project uses:
+#### References
 
-* Matlab and Simulink www.mathworks.com
 * Peter Corke's [Robotics Toolbox](http://petercorke.com/Robotics_Toolbox.html)
+* http://wiki.paparazziuav.org/wiki/AR_Drone_2
 
 
 
 
 [src MatlabServer]: https://github.com/fehu/drone-control/blob/master/matlab/src/main/scala/feh/tec/matlab/server/MatlabServer.scala
-[src MatlabClient]: https://github.com/fehu/drone-control/blob/master/matlab/src/main/scala/feh/tec/matlab/MatlabClient.scala
+[src MatlabClient]: `https://github.com/fehu/drone-control/blob/master/matlab/src/main/scala/feh/tec/matlab/MatlabClient.scala
 [src DroneSimulation]: https://github.com/fehu/drone-control/blob/master/matlab/src/main/scala/feh/tec/matlab/DroneSimulation.scala
 [src Default]: https://github.com/fehu/drone-control/blob/master/matlab/src/main/scala/feh/tec/matlab/server/ServerDefaults.scala
 [src simExec]: https://github.com/fehu/drone-control/blob/master/matlab/simExec.m
