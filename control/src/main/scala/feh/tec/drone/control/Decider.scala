@@ -49,7 +49,7 @@ class PositionKeeperDemo(val controller: ActorRef, controlTimeout: Timeout)
       implicit def timeout = controlTimeout
       controller ? Control.Stop
     case PoseEstimated(pos) =>
-      env.dronePosition = pos
+      env.dronePosition = pos.position
       println(s"position: $pos")
   }
 }

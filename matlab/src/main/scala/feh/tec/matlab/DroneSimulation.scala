@@ -8,9 +8,17 @@ import scala.concurrent.duration._
 import akka.actor.{ActorIdentity, Identify}
 import akka.pattern.ask
 import feh.util.InUnitInterval
+import feh.util._
 
 object Structure{
   implicit def matlabStructureWrapper(ms: Structure) = ms.fields
+
+  def fromMatlab(name: String): Array[Any] => Structure = {
+    case Array(Array(names @ _*), Array(Array(vals @ _*))) =>
+      Structure(name,
+        names.zip(vals).map{ case (k: String, v) => k -> v.asInstanceOf[Array[Double]].head}.toMap[String, Any]
+      )
+  }
 }
 case class Structure(name: String, fields: Map[String, Any]){
   def apply[T](field: String): T = fields(field).asInstanceOf[T]
@@ -36,7 +44,8 @@ case class GetWorkspaceVar[R : ClassTag](name: String, result: Array[Any] => R) 
   def params = Nil
 }
 
-case class GetWorkspaceVarStructure[R : ClassTag](name: String, result: Structure => R) extends Method[R]{
+case class GetWorkspaceVarStructure[R : ClassTag](name: String, sresult: Structure => R) extends Method[R]{
+  def result = sresult compose Structure.fromMatlab(name)
   def params = Nil
 }
 
@@ -84,12 +93,7 @@ class DroneSimulation[M <: Model](val model: M, matlab: MatlabSimClient, val def
       matlab.eval(name, 1).map(func.result)
     case GetWorkspaceVarStructure(name, parse) =>
       assert(params.isEmpty)
-      matlab.eval(name, 1).map{
-        case Array(Array(names @ _*), Array(Array(vals @ _*))) =>
-          Structure(name,
-            names.zip(vals).map{ case (k: String, v) => k -> v.asInstanceOf[Array[Double]].head}.toMap[String, Any]
-          )
-      } map parse
+      matlab.eval(name, 1).map(parse compose Structure.fromMatlab(name))
     case GenericMethod(name, pTags, nReturn, result) =>
       assert(pTags.length == params.length, "wrong params number")
       for((p, tag) <- params zip pTags)

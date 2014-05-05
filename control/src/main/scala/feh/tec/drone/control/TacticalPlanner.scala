@@ -7,7 +7,7 @@ import feh.tec.drone.control.util.Math.PowWrapper
 import feh.tec.drone.control.Coordinate.CoordinateOps
 import feh.tec.drone.control.matlab.DynControl
 import akka.util.Timeout
-import feh.tec.drone.control.Config.SimTimeouts
+import feh.tec.drone.control.Config.SimConfig
 import feh.tec.drone.control.DroneApiCommands.MoveFlag
 import scala.concurrent.Future
 
@@ -28,7 +28,7 @@ trait TacticalPlanner extends Actor{
 
   def destination = waypoints.headOption
 
-  def msgWaypoints(msg: WaypointsControl) = {
+  def msgWaypoints(msg: WaypointsControl) = msg match {
     case SetWaypoints(wp@_*) => waypoints = wp
   }
 
@@ -60,11 +60,12 @@ trait TacticalPlannerHelper {
 
 trait MatlabDynControlTacticalPlanner extends TacticalPlanner{
   def matlab: MatlabSimClient
-  def timeouts: SimTimeouts
+  def simConf: SimConfig
+  implicit def execContext = simConf.execContext
 
-  lazy val controlSim = new DroneSimulation[DynControl](new DynControl, matlab, timeouts.default)
+  lazy val controlSim = new DroneSimulation[DynControl](new DynControl, matlab, simConf.defaultTimeout)
 
-  def startControl(){ controlSim.start(timeouts.simStart) }
+  def startControl(){ controlSim.start(simConf.simStartTimeout) }
 
   import controlSim._
 
@@ -87,7 +88,7 @@ trait MatlabDynControlTacticalPlanner extends TacticalPlanner{
   }
 }
 
-class StraightLineTacticalPlanner(env: Environment, val matlab: MatlabSimClient, val timeouts: SimTimeouts)
+class StraightLineTacticalPlanner(env: Environment, val matlab: MatlabSimClient, val simConf: SimConfig)
   extends MatlabDynControlTacticalPlanner with TacticalPlannerHelper
 {
   type Input = NavdataDemo

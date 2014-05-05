@@ -1,7 +1,8 @@
 package feh.tec.drone.control
 
 import akka.util.Timeout
+import scala.concurrent.ExecutionContext
 
 object Config {
-  case class SimTimeouts(default: Timeout, simStart: Timeout)
+  case class SimConfig(defaultTimeout: Timeout, simStartTimeout: Timeout, implicit val execContext: ExecutionContext)
 }
