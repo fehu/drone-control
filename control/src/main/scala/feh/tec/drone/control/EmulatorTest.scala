@@ -6,6 +6,7 @@ import feh.tec.matlab.{DroneSimulation, MatlabSimClient}
 import feh.tec.drone.control.Config.SimConfig
 import akka.actor.ActorSystem
 import feh.tec.matlab.server
+import scala.concurrent.ExecutionContext
 
 
 object EmulatorTest {
@@ -17,10 +18,12 @@ object EmulatorTest {
     forwarderProps = params => 
       DataForwarder.props(new EmulatorFeedChannelStub, _ => None,
         aref => params.feedReaders, params.feedNotifiers, readFreq)(actorSys)
-  ) with NavigationCore with MatlabControlCore with MatlabEmulationCore
+  ) with NavigationCore with MatlabControlCore with MatlabEmulationCore with CoreSequentialStart
   {
 
     import asys.dispatcher
+
+    def startExecContext = asys.dispatcher
 
     lazy val controlMatlab = new MatlabSimClient(asys.actorSelection(server.DynControl.path))
     lazy val controlConfig = SimConfig(defaultTimeout = 20 millis, simStartTimeout = 30 seconds, execContext = asys.dispatcher)

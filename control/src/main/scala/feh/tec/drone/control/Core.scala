@@ -2,6 +2,9 @@ package feh.tec.drone.control
 
 import akka.actor.{ActorSystem, Props, ActorRef}
 import feh.tec.matlab.{DroneSimulation, Model, MatlabSimClient}
+import akka.pattern.ask
+import scala.util.{Failure, Success}
+import scala.concurrent.ExecutionContext
 
 trait Core {
   def env: Environment
@@ -19,7 +22,6 @@ trait Core {
   def start() = {
     controller ! Control.Start
     forwarder ! Control.Start
-//    feedNotifiers
     control foreach(_ ! Control.Start)
   }
 
@@ -60,14 +62,25 @@ trait MatlabEmulationCore extends Core{
   val emulationSim: DroneSimulation[_]
   val emulationConfig: Config.SimConfig
 
-  override def start(){
-    super.start()
-    emulationSim.start(emulationConfig.simStartTimeout)
-  }
+}
 
-  override def stop(){
-    super.stop()
-    emulationSim.stop
+/**
+ * loses generality on control, for usage with matlab simulation and control
+ */
+trait CoreSequentialStart extends Core{
+  self: MatlabEmulationCore with MatlabControlCore =>
+
+  def startExecContext: ExecutionContext
+  
+  override def start(){
+    implicit def context = startExecContext
+    controller.ask(Control.Start)(emulationConfig.simStartTimeout) flatMap  { _ =>
+      forwarder ! Control.Start
+      (tacticalPlanner ? Control.Start)(controlConfig.simStartTimeout)
+    } onComplete {
+      case Success(_) => // continue with execution
+      case Failure(err) => throw err
+    }
   }
 }
 

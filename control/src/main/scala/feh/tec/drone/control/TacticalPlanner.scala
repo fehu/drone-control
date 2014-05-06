@@ -8,7 +8,7 @@ import feh.tec.drone.control.Coordinate.CoordinateOps
 import feh.tec.drone.control.matlab.DynControl
 import feh.tec.drone.control.Config.SimConfig
 import feh.tec.drone.control.DroneApiCommands.MoveFlag
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.reflect.runtime.universe._
 import feh.tec.drone.control.Control.Message
 import akka.event.Logging
@@ -34,7 +34,9 @@ trait TacticalPlanner extends Actor{
   def destination = waypoints.headOption
 
   def msgWaypoints(msg: WaypointsControl) = msg match {
-    case SetWaypoints(wp@_*) => waypoints = wp
+    case SetWaypoints(wp@_*) =>
+      waypoints = wp
+      sendCommand()
   }
 
 
@@ -44,12 +46,14 @@ trait TacticalPlanner extends Actor{
   /** what's next to do
    */
   def command: Input => Future[ControlCommand]
-  
+
+  def sendCommand()
+
   def msgPoseEstimated(pose: Pose)
 
   def msgControl(msg: Control.Message)
 
-  var navData: NavdataDemo = null
+  var navData: NavdataDemo = NavdataDemo.zero
 
   def navdataFeed: NavdataDemoFeed
   def poseEstimationFeed: AbstractPoseEstimationFeed
@@ -88,7 +92,7 @@ trait MatlabDynControlTacticalPlanner extends TacticalPlanner{
   protected val log = Logging(context.system, this)
 
   def start(){
-    controlSim.start(simConf.simStartTimeout)
+    Await.ready(controlSim.start(simConf.simStartTimeout), simConf.simStartTimeout.duration)
     forwarder ! Subscribe(navdataFeed)
     forwarder ! Subscribe(poseEstimationFeed)
     log.info("Tactical planner started")
@@ -147,12 +151,19 @@ class StraightLineTacticalPlanner(val env: Environment,
     sendCommand()
   }
 
-  def sendCommand() = if(navData != null){
+  def sendCommand() =
+    log.info("Sending command called ")
     command(navData) map {
       c =>
         log.info("Sending command: " + c)
         controller ! c
+    } onFailure{
+      case err: Throwable => throw err
     }
+
+  override def start(): Unit = {
+    super.start()
+    sendCommand()
   }
 
   private def isCloseToPoint = closeToPoint_?(pointDistance) _
@@ -160,12 +171,14 @@ class StraightLineTacticalPlanner(val env: Environment,
   /** what's next to do
     */
   def command = nav => {
+    log.info("requesting next command from tactical planner")
     if(destination.nonEmpty && isCloseToPoint(poseEstimation.position)){
 //      strategicPlanner ! WaypointReached(destination.get, System.currentTimeMillis())
       nextWaypoint()
       destination foreach (setControlDestination(_))
     }
 
+    log.info("getting control data from matlab")
     getControl(poseEstimation, nav).map (c =>
       DroneApiCommands.Move(MoveFlag.default, c.roll, c.pitch, c.yaw, c.gaz)
     )

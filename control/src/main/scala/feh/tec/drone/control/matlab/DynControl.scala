@@ -26,18 +26,18 @@ class DynControl extends Model("quadrotor_control", "realsys", dir = /){
   )
 
   val writeNavdata = GenericMethod[Unit]("writeNavdata",
-    classTag[Double] :: // x
-      classTag[Double] :: // y
-      classTag[Double] :: // z
-      classTag[Float] :: // pitch
-      classTag[Float] :: // roll
-      classTag[Float] :: // yaw
-      classTag[Float] :: // dx
-      classTag[Float] :: // dy
-      classTag[Float] :: // dz
-      classTag[Float] :: // dpitch
-      classTag[Float] :: // droll
-      classTag[Float] :: Nil,// dyaw
+    classTag[java.lang.Double] :: // x
+      classTag[java.lang.Double] :: // y
+      classTag[java.lang.Double] :: // z
+      classTag[java.lang.Float] :: // pitch
+      classTag[java.lang.Float] :: // roll
+      classTag[java.lang.Float] :: // yaw
+      classTag[java.lang.Float] :: // dx
+      classTag[java.lang.Float] :: // dy
+      classTag[java.lang.Float] :: // dz
+      classTag[java.lang.Float] :: // dpitch
+      classTag[java.lang.Float] :: // droll
+      classTag[java.lang.Float] :: Nil,// dyaw
     nReturn = 0,
     result = _ => {}
   )

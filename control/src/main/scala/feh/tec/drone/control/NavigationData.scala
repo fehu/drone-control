@@ -1,11 +1,12 @@
 package feh.tec.drone.control
 
 import feh.tec.drone.control.util.UnsignedInt
+import feh.tec.drone.control.ControlState.Default
 
 trait NavigationData
 
 case class NavdataDemo(ctrl_state: ControlState,
-                       batteryVoltage: UnsignedInt, // battery voltage filtered (mV)
+                       batteryVoltage: Int, // battery voltage filtered (mV)
                        pitch: Float,                // UAV's pitch in milli-degrees
                        roll: Float,                 // UAV's roll in milli-degrees
                        yaw: Float,                  // UAV's yaw in milli-degrees
@@ -18,6 +19,10 @@ case class NavdataDemo(ctrl_state: ControlState,
                        dyaw: Float                  // UAV's estimated angular velocity
 //                       detection_camera_type: Null  // ?????
                         ) extends NavigationData
+
+object NavdataDemo{
+  def zero = NavdataDemo(Default, 0,0,0,0,0,0,0,0,0,0,0)
+}
 
 trait ControlState
 

@@ -162,7 +162,16 @@ object  Build extends sbt.Build {
     base = file("control"),
     settings = buildSettings ++ Seq(
 //      resolvers ++= Seq(Release.scalaNLP, Snapshot.scalaTools),
-      libraryDependencies ++= Seq(akka.actor, feh.util /*scalala*/)
+      libraryDependencies ++= Seq(akka.actor, feh.util /*scalala*/),
+      initialCommands in console :=
+        """
+          |import akka.actor.ActorSystem
+          |import feh.tec.drone.control.{EmulatorTest, TacticalPlanner}
+          |import scala.concurrent.duration._
+          |implicit val asys = ActorSystem.create()
+          |lazy val core = new EmulatorTest.Core
+          |def sendWaypoint(c: (Double, Double, Double)) = core.tacticalPlanner ! TacticalPlanner.SetWaypoints(c)
+        """.stripMargin
     ) ++ Bundle.breeze
   ) dependsOn matlab
 

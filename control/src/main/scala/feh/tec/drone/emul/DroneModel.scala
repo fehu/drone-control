@@ -8,7 +8,7 @@ class DroneModel extends QuadModel.Drone {
   lazy val navdataDemo = GetWorkspaceVarStructure[NavdataDemo]("get_navdata_demo", params =>
       NavdataDemo(
         ctrl_state = ControlState.Default, // todo
-        batteryVoltage = UnsignedInt(0), //todo
+        batteryVoltage = 0, //todo
         pitch = params[Double]("pitch").toFloat,
         roll = params[Double]("roll").toFloat,
         yaw = params[Double]("yaw").toFloat,

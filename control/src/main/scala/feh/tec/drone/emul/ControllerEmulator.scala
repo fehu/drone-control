@@ -8,13 +8,19 @@ import akka.util.Timeout
 import feh.tec.drone.control._
 import feh.tec.drone.control.DroneApiCommands.Move
 import scala.reflect.runtime.universe._
+import akka.event.Logging
 
 class ControllerEmulator(val simulator: DroneSimulation[Emulator.Model],
                          startTimeout: Timeout,
                          implicit val asys: ActorSystem) extends Controller{
+
+  import asys._
+
   val ioControl = null
 
   def watchdog = ???
+
+  protected val log = Logging(context.system, this)
 
   def receive = {
     case control: Control.Message => msgControl(control)
@@ -24,9 +30,9 @@ class ControllerEmulator(val simulator: DroneSimulation[Emulator.Model],
 
   def msgControl: PartialFunction[Control.Message, Unit] = {
     case Control.Start =>
-      simulator.start(startTimeout)
+      simulator.start(startTimeout).map(sender !)
     case Control.Stop =>
-      simulator.stop
+      simulator.stop.map(sender !)
   }
   
   def msgReq: PartialFunction[Controller.Req, Unit] = Map()
@@ -36,7 +42,8 @@ class ControllerEmulator(val simulator: DroneSimulation[Emulator.Model],
     case Land => ???
     case EmergencyStop => simulator.setParam(_.gaz, 0d)
     case CancelEmergencyStop => ???
-    case Move(_, roll, pitch, yaw, gaz) =>
+    case m@Move(_, roll, pitch, yaw, gaz) =>
+      log.info("ControllerEmulator: received move command: " + m)
       simulator.setParam(_.roll, roll)
       simulator.setParam(_.pitch, pitch)
       simulator.setParam(_.yaw, yaw.d) // todo

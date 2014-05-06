@@ -97,7 +97,7 @@ class DroneSimulation[M <: Model](val model: M, matlab: MatlabSimClient, val def
     case GenericMethod(name, pTags, nReturn, result) =>
       assert(pTags.length == params.length, "wrong params number")
       for((p, tag) <- params zip pTags)
-        assert(p.getClass == tag.runtimeClass, s"$tag is required, ${p.getClass} found")
+        assert(p.getClass == tag.runtimeClass, s"${tag.runtimeClass} is required, ${p.getClass} found")
       matlab.feval(name, params.toList, nReturn) map result
   }
 

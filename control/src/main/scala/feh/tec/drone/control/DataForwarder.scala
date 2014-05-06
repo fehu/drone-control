@@ -130,10 +130,10 @@ object DataForwarder{
     protected val log = Logging(context.system, this)
 
     def msgIn: PartialFunction[InMessage, Unit] = {
-      case Subscribe(feed) =>
+      case Subscribe(feed) if sender != ActorRef.noSender =>
         if(!_listeners.contains(sender)) _listeners += sender -> Set()
         _listeners <<=(sender, _ + feed)
-      case Unsubscribe(feed) => _listeners <<=(sender, _ - feed)
+      case Unsubscribe(feed) if sender != ActorRef.noSender => _listeners <<=(sender, _ - feed)
       case f@Forward(feed, data) if extraFeeds.keySet contains feed =>
         log.info(s"forwarding $feed data: $data")
         listenersFor(feed) foreach (_ ! f)

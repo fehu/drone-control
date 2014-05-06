@@ -12,6 +12,7 @@ import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.Some
 import akka.remote.RemoteScope
+import feh.tec.matlab.server.MatlabQueueServer.SimStarted
 
 trait MatlabServer{
   def name: String
@@ -35,7 +36,7 @@ object MatlabAsyncServer{
   case class Feval(fname: String, args: List[Any], nRes: Int)
   case object Shutdown
 
-  case class Result(arr: Array[Any])
+  case class Result(value: Any)
   case class Error(thr: Throwable)
 
   class ServerActor(shutdown: () => Unit) extends Actor{
@@ -59,7 +60,7 @@ object MatlabAsyncServer{
     }
 
     def guardRequestAndExec(f: => Any, id: UUID = UUID.randomUUID()) = {
-      requests += id -> sender
+      requests += id -> sender()
       withinMatlabThread(id, f)
     }
 
@@ -69,7 +70,7 @@ object MatlabAsyncServer{
     })
 
     def execAndRespond(id: UUID, f: => Any) =
-      (try Result(f.asInstanceOf[Array[Any]])
+      (try Result(f)
       catch {
         case ex: Throwable =>
           log.error(ex, "server call: error")
@@ -88,10 +89,9 @@ object MatlabAsyncServer{
   * Is used in a simulink block callback to allow access to matlab thread
   */
 class MatlabQueueServer(name: String)(implicit asystem: ActorSystem) extends MatlabAsyncServer(name){
-  override def serverActorProps = Props(classOf[MatlabQueueServer.ServerActor], shutdown.lifted, queue.put _)
+  override def serverActorProps = Props(classOf[MatlabQueueServer.ServerActor], shutdown.lifted, queue.put _, queue.clear _)
 
   object queue{
-    import Default._
 
     case class Put(ex: Lifted[Any])
     case object Next{
@@ -99,25 +99,40 @@ class MatlabQueueServer(name: String)(implicit asystem: ActorSystem) extends Mat
     }
     case class Next(opt: Option[Lifted[Any]])
 
+    case object Clear
 
-    val queueManager = actor(new Act {
+    case object List
+
+    val queueManager = actor("AQ")(new Act {
       val queue = mutable.Queue.empty[Lifted[Any]]
 
       become{
         case Put(x) => queue += x
         case Next => sender ! Next(if(queue.nonEmpty) Some(queue.dequeue()) else None)
+        case Clear => queue.clear()
+        case List => sender ! queue.toList
       }
     })(implicitly, asystem)
 
 
     def put(ex: Lifted[Any]) = queueManager ! Put(ex)
     def next() = Await.result((queueManager ? Next)(10 millis).mapTo[Next], 10 millis)
+
+    def list() = Await.result((queueManager ? List)(10 millis).mapTo[List[Lifted[Any]]], 10 millis)
+
+    def clear() = queueManager ! Clear
   }
+
   def execNext() = queue.next().foreach(f =>{
     asystem.log.debug("Executing next")
     f()
     asystem.log.debug("Executed next")
   })
+
+  def simStarted() = {
+    serverActor ! SimStarted
+    sys.error("ASDFAXDASD")
+  }
 }
 
 /*
@@ -136,7 +151,15 @@ object MatlabQueueServer{
   case class StartSim(simName: String, execLoopBlock: String)
   case object StopSim
 
-  class ServerActor(shutdown: () => Unit, putToQueue: Lifted[Any] => Unit) extends MatlabAsyncServer.ServerActor(shutdown){
+  case object SimStopped
+
+  case object SimStarted
+
+  case object InSim
+
+  class ServerActor(shutdown: () => Unit, putToQueue: Lifted[Any] => Unit, clearQueue: () => Unit)
+    extends MatlabAsyncServer.ServerActor(shutdown)
+  {
 
     def startSim(name: String, block: String) = {
       Matlab.mtEval(name)
@@ -148,16 +171,45 @@ object MatlabQueueServer{
       Matlab.mtFeval("close_system", Array(name), 0)
     }
 
+    var simStartRequester: Option[ActorRef] = None
+
+    def respondToSimRequester(msg: Any) = simStartRequester.foreach{
+      s =>
+        s ! msg
+        simStartRequester = None
+    }
+
     override def receive = super.receive orElse {
       case StartSim(name, block) =>
-        log.debug("StartSim")
-        guardRequestAndExec(startSim(name, block))
+        log.info("Start Sim")
+        simStartRequester = Some(sender())
+        guardRequestAndExec(
+          try startSim(name, block)
+          catch {
+            case err: Throwable =>
+              log.error("error on sim start, requester = " + simStartRequester)
+              respondToSimRequester(MatlabAsyncServer.Error(err))
+          }
+        )
+        guardRequestAndExec({
+          log.info("notifying simulation finished")
+          self ! SimStopped
+          clearQueue()
+        }
+        )
         simName = Some(name)
       case StopSim if inSim =>
-        log.debug("StopSim")
+        log.info("Stop Sim")
         val name = simName.get
         simName = None
         stopSim(name)
+      case SimStarted =>
+        log.info("Sim Started, requester = " + simStartRequester)
+        respondToSimRequester(SimStarted)
+      case SimStopped =>
+        log.info("Sim Stopped")
+        simName = None
+      case InSim => sender ! inSim
     }
 
     var simName: Option[String] = None

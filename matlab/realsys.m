@@ -41,14 +41,17 @@ end
 function waitForNavdata()    
 global timer_ 
     
-    timer_ = timer('TimerFcn',@checkForNavdata, 'Period', 0.01);
+    timer_ = timer('TimerFcn',@checkForNavdata,'ExecutionMode', 'fixedSpacing', ...
+        'Period', 0.05);
     start(timer_)
     wait(timer_)
 end
 
 function checkForNavdata(x, y)    
-global uav_navdata timer_ 
-
+global uav_navdata timer_ server
+    
+    server.execNext;                                                            %%% server exec
+    
     if uav_navdata.read == 0
         stop(timer_)
     end
