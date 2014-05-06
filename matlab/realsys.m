@@ -41,12 +41,12 @@ end
 function waitForNavdata()    
 global timer_ 
     
-    timer_ = timer('TimerFcn',@checkForNavdata, 'AveragePeriod', 0.01);
+    timer_ = timer('TimerFcn',@checkForNavdata, 'Period', 0.01);
     start(timer_)
     wait(timer_)
 end
 
-function checkForNavdata()    
+function checkForNavdata(x, y)    
 global uav_navdata timer_ 
 
     if uav_navdata.read == 0

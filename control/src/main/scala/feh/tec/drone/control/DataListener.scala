@@ -42,6 +42,10 @@ class BuildForwardMatcher[F <: DataFeed](implicit tag: TypeTag[F]){
     if(tag.tpe =:= f.feed.dataTag.tpe) Some(f.data.asInstanceOf[F#Data]) else None
 }
 
+class BuildFeedMatcher[F <: DataFeed](feed: F){
+  def unapply(f: Forward[DataFeed]): Option[F#Data] = if (f.feed == feed) Some(f.data.asInstanceOf[F#Data]) else None
+}
+
 object BuildForwardMatcher{
   def apply[F <: DataFeed: TypeTag] = new BuildForwardMatcher[F]
 }

@@ -1,6 +1,6 @@
 package feh.tec.drone.control
 
-import akka.actor.{Props, Actor}
+import akka.actor.{ActorRef, Props, Actor}
 import feh.tec.drone.control.TacticalPlanner.{WaypointsControl, SetWaypoints}
 import feh.tec.matlab.{DroneSimulation, MatlabSimClient}
 import feh.tec.drone.control.util.Math.PowWrapper
@@ -10,6 +10,10 @@ import feh.tec.drone.control.Config.SimConfig
 import feh.tec.drone.control.DroneApiCommands.MoveFlag
 import scala.concurrent.Future
 import scala.reflect.runtime.universe._
+import feh.tec.drone.control.Control.Message
+import akka.event.Logging
+import feh.tec.drone.control.DataForwarder.{Unsubscribe, Subscribe}
+import feh.tec.drone.emul.Emulator.NavdataDemoFeed
 
 object TacticalPlanner{
 
@@ -33,8 +37,6 @@ trait TacticalPlanner extends Actor{
     case SetWaypoints(wp@_*) => waypoints = wp
   }
 
-  val poseEstimationFeedTag: TypeTag[_ <: AbstractPoseEstimationFeed]
-  lazy val PoseEstimationFeed = BuildForwardMatcher(poseEstimationFeedTag)
 
   def poseEstimation: Pose
   
@@ -45,9 +47,21 @@ trait TacticalPlanner extends Actor{
   
   def msgPoseEstimated(pose: Pose)
 
+  def msgControl(msg: Control.Message)
+
+  var navData: NavdataDemo = null
+
+  def navdataFeed: NavdataDemoFeed
+  def poseEstimationFeed: AbstractPoseEstimationFeed
+
+  protected val NavdataMatch = new BuildFeedMatcher(navdataFeed)
+  protected val PoseEstimationMatch = new BuildFeedMatcher(poseEstimationFeed)
+
   def receive = {
+    case NavdataMatch(data) => navData = data
+    case control: Control.Message => msgControl(control)
     case wp: WaypointsControl => msgWaypoints(wp)
-    case PoseEstimationFeed(pose) => msgPoseEstimated(pose)
+    case PoseEstimationMatch(pose) => msgPoseEstimated(pose)
   }
 }
 
@@ -64,12 +78,33 @@ trait TacticalPlannerHelper {
 
 trait MatlabDynControlTacticalPlanner extends TacticalPlanner{
   def matlab: MatlabSimClient
+  def forwarder: ActorRef
+  
   def simConf: SimConfig
   implicit def execContext = simConf.execContext
 
   lazy val controlSim = new DroneSimulation[DynControl](new DynControl, matlab, simConf.defaultTimeout)
 
-  def startControl(){ controlSim.start(simConf.simStartTimeout) }
+  protected val log = Logging(context.system, this)
+
+  def start(){
+    controlSim.start(simConf.simStartTimeout)
+    forwarder ! Subscribe(navdataFeed)
+    forwarder ! Subscribe(poseEstimationFeed)
+    log.info("Tactical planner started")
+  }
+
+  def stop(){
+    controlSim.stop
+    forwarder ! Unsubscribe(navdataFeed)
+    forwarder ! Unsubscribe(poseEstimationFeed)
+    log.info("Tactical planner stopped")
+  }
+
+  def msgControl(msg: Message) = msg match{
+    case Control.Start => start()
+    case Control.Stop => stop()
+  }
 
   import controlSim._
 
@@ -93,18 +128,32 @@ trait MatlabDynControlTacticalPlanner extends TacticalPlanner{
 }
 
 class StraightLineTacticalPlanner(val env: Environment,
+                                  val controller: ActorRef,
+                                  val forwarder: ActorRef,
 //                                  val strategicPlanner: StrategicPlanner,
                                   val matlab: MatlabSimClient,
                                   val simConf: SimConfig,
-                                  val poseEstimationFeedTag: TypeTag[_ <: AbstractPoseEstimationFeed],
+                                  val navdataFeed: NavdataDemoFeed,
+                                  val poseEstimationFeed: AbstractPoseEstimationFeed,
                                   val pointDistance: Double)
   extends MatlabDynControlTacticalPlanner with TacticalPlannerHelper
 {
   type Input = NavdataDemo
   var poseEstimation = Pose(env.zero, Orientation(0, 0, 0))
 
+  def msgPoseEstimated(pose: Pose) = {
+    poseEstimation = pose
 
-  def msgPoseEstimated(pose: Pose) = poseEstimation = pose
+    sendCommand()
+  }
+
+  def sendCommand() = if(navData != null){
+    command(navData) map {
+      c =>
+        log.info("Sending command: " + c)
+        controller ! c
+    }
+  }
 
   private def isCloseToPoint = closeToPoint_?(pointDistance) _
 
@@ -125,9 +174,13 @@ class StraightLineTacticalPlanner(val env: Environment,
 
 object StraightLineTacticalPlanner{
   def props(env: Environment,
+            controller: ActorRef,
+            forwarder: ActorRef,
             matlab: MatlabSimClient,
             simConf: SimConfig,
-            poseEstimationFeedTag: TypeTag[_ <: AbstractPoseEstimationFeed],
+            navdataFeed: NavdataDemoFeed,
+            poseEstimationFeed: AbstractPoseEstimationFeed,
             pointDistance: Double) =
-    Props(classOf[StraightLineTacticalPlanner], env, matlab, simConf, poseEstimationFeedTag, pointDistance)
+    Props(classOf[StraightLineTacticalPlanner], env, controller, forwarder, matlab, simConf,
+      navdataFeed, poseEstimationFeed, pointDistance)
 }

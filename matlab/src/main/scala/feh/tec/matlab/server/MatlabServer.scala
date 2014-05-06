@@ -1,6 +1,6 @@
 package feh.tec.matlab.server
 
-import akka.actor.{ActorRef, Props, ActorSystem, Actor}
+import akka.actor._
 import com.mathworks.jmi.Matlab
 import feh.util._
 import akka.event.Logging
@@ -10,6 +10,8 @@ import akka.actor.ActorDSL._
 import akka.pattern.ask
 import scala.concurrent.duration._
 import scala.concurrent.Await
+import scala.Some
+import akka.remote.RemoteScope
 
 trait MatlabServer{
   def name: String
@@ -19,15 +21,13 @@ trait MatlabServer{
 
 
 class MatlabAsyncServer(val name: String)(implicit val asystem: ActorSystem) extends MatlabServer{
-  // it's lazy only because of a ?bug? causing overridden vals instances creation
-  lazy val serverActor = asystem.actorOf(Props(classOf[MatlabAsyncServer.ServerActor], shutdown.lifted), name)
+  def serverActorProps = Props(classOf[MatlabAsyncServer.ServerActor], shutdown.lifted)
+  val serverActor = asystem.actorOf(serverActorProps, name)
 
   def shutdown() {
     asystem.shutdown()
     sys.exit()
   }
-
-  serverActor
 }
 
 object MatlabAsyncServer{
@@ -87,8 +87,8 @@ object MatlabAsyncServer{
 /** Executes next queued statement at `execNext` call.
   * Is used in a simulink block callback to allow access to matlab thread
   */
-class MatlabQueueServer(name: String)(implicit _asystem: ActorSystem) extends MatlabAsyncServer(name){
-  override lazy val serverActor = asystem.actorOf(Props(classOf[MatlabQueueServer.ServerActor], shutdown.lifted, queue.put _), name)
+class MatlabQueueServer(name: String)(implicit asystem: ActorSystem) extends MatlabAsyncServer(name){
+  override def serverActorProps = Props(classOf[MatlabQueueServer.ServerActor], shutdown.lifted, queue.put _)
 
   object queue{
     import Default._
@@ -107,7 +107,7 @@ class MatlabQueueServer(name: String)(implicit _asystem: ActorSystem) extends Ma
         case Put(x) => queue += x
         case Next => sender ! Next(if(queue.nonEmpty) Some(queue.dequeue()) else None)
       }
-    })
+    })(implicitly, asystem)
 
 
     def put(ex: Lifted[Any]) = queueManager ! Put(ex)
@@ -120,6 +120,16 @@ class MatlabQueueServer(name: String)(implicit _asystem: ActorSystem) extends Ma
   })
 }
 
+/*
+object RemoteMatlabQueueServer{
+  def apply(name: String, host: String, port: Int)(implicit _asystem: ActorSystem) =
+    new MatlabQueueServer(name){
+      override def serverActorProps: Props = super.serverActorProps.withDeploy(Deploy(
+        scope = RemoteScope(Address("akka.tcp", "sys", host, port))
+      ))
+    }
+}
+*/
 
 object MatlabQueueServer{
 
@@ -129,10 +139,14 @@ object MatlabQueueServer{
   class ServerActor(shutdown: () => Unit, putToQueue: Lifted[Any] => Unit) extends MatlabAsyncServer.ServerActor(shutdown){
 
     def startSim(name: String, block: String) = {
-      Matlab.mtFeval("setSimOnStart", Array(name + "/" + block), 0)
+      Matlab.mtEval(name)
+      Matlab.mtFeval("setSimOnStart", Array(name, block), 0)
       Matlab.mtFeval("sim", Array(name), 1)
     }
-    def stopSim(name: String) = Matlab.mtFeval("set_param", Array(name, "SimulationCommand", "stop"), 0)
+    def stopSim(name: String) = {
+      Matlab.mtFeval("set_param", Array(name, "SimulationCommand", "stop"), 0)
+      Matlab.mtFeval("close_system", Array(name), 0)
+    }
 
     override def receive = super.receive orElse {
       case StartSim(name, block) =>

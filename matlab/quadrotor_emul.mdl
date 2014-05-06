@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.58"
+    ComputedModelVersion    "1.60"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -23,15 +23,16 @@ Model {
   MaxMDLFileLineLength	  120
   InitFcn		  "% load parameters of the default quadrotor\ndisp('Quadrotor parameters loaded by InitFcn')\nmdl_quadcopt"
   "er\n"
+  StartFcn		  "h = add_exec_event_listener('quadrotor_emul/Quadrotor plot/Plotter', 'PostOutputs', @simExec);"
   Created		  "Sat Mar 20 12:13:00 2010"
   Creator		  "corkep"
   UpdateHistory		  "UpdateHistoryNever"
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "fehu"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Sun May 04 22:51:15 2014"
-  RTWModifiedTimeStamp	  321144670
-  ModelVersionFormat	  "1.%<AutoIncrement:58>"
+  LastModifiedDate	  "Mon May 05 22:38:29 2014"
+  RTWModifiedTimeStamp	  321230272
+  ModelVersionFormat	  "1.%<AutoIncrement:60>"
   ConfigurationManager	  "None"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -752,7 +753,7 @@ Model {
   }
   System {
     Name		    "quadrotor_emul"
-    Location		    [914, 181, 1468, 830]
+    Location		    [1008, 158, 1562, 807]
     Open		    on
     ModelBrowserVisibility  off
     ModelBrowserWidth	    200
@@ -775,7 +776,7 @@ Model {
       Position		      [245, 550, 250, 590]
       ZOrder		      -3
       ShowName		      off
-      OutputSignals	      "dx,dy,dz,droll,dpitch,dyaw,Z"
+      OutputSignals	      "dx,dy,dz,droll,dpitch,dyaw,Z,roll,pitch,yaw"
       OutputAsBus	      on
     }
     Block {

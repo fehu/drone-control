@@ -3,7 +3,7 @@ package feh.tec.drone.control
 import akka.actor.{ActorRef, Actor}
 import akka.pattern.ask
 import feh.tec.drone.control.DataForwarder.Forward
-import feh.tec.drone.control.emul.Emulator
+import feh.tec.drone.emul.Emulator
 import akka.util.Timeout
 import scala.concurrent.ExecutionContext
 

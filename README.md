@@ -12,7 +12,7 @@ and a [MatlabServer][src MatlabServer] instance must be created within matlab wo
 From the client side a [MatlabClient][src MatlabClient] establishes a connection with the server.
 [DroneSimulation][src DroneSimulation] uses a _Model_ to run a Simulink simulation and allows setting and getting it's params.
 
-* The server jar is packaged by executing `build-server-jar` sbt task in 'matlab-control' subproject
+* The server jar is packaged by executing `assembly` sbt task in 'matlab-control' subproject
 * To modify Matlab's classpath type `edit classpath.txt` in it's console, then add a line with the path to the jar, while keeping file's last line empty
 * Currently there are two implementations of _MatlabServer_ available:
     * `MatlabAsyncServer` - for normal Matlab usage

@@ -19,7 +19,7 @@ trait Core {
   def start() = {
     controller ! Control.Start
     forwarder ! Control.Start
-    feedNotifiers
+//    feedNotifiers
     control foreach(_ ! Control.Start)
   }
 
@@ -59,6 +59,16 @@ trait MatlabEmulationCore extends Core{
   val emulationModel: Model
   val emulationSim: DroneSimulation[_]
   val emulationConfig: Config.SimConfig
+
+  override def start(){
+    super.start()
+    emulationSim.start(emulationConfig.simStartTimeout)
+  }
+
+  override def stop(){
+    super.stop()
+    emulationSim.stop
+  }
 }
 
 object CoreBase{
@@ -75,15 +85,14 @@ abstract class CoreBase(val env: Environment,
                         val feedNotifiers: Map[DataFeed, FeedNotifierProps] = Map()*/)
                        (implicit val asys: ActorSystem) extends Core{
   lazy val controller = asys.actorOf(controllerProps, "core-controller")
-  val forwarder = asys.actorOf(
+  lazy val forwarder = asys.actorOf(
     forwarderProps(CoreBase.ForwarderParams(controller, feedReaders, feedNotifiers)),
     "core-forwarder"
   )
-//  val control = controlProps.map(asys.actorOf)
-
-  controller
 
   def feedReaders: Map[DataFeed, FeedReaderProps] = Map()
   def feedNotifiers: Map[DataFeed, FeedNotifierProps] = Map()
   def control: Set[ActorRef] = Set()
+
+  controller;forwarder // init lazy val, it's done to override controller without overridden object creation (is/was scala ?bug?)
 }

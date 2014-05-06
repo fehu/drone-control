@@ -1,4 +1,4 @@
-package feh.tec.drone.control.emul
+package feh.tec.drone.emul
 
 import feh.tec.matlab.{GetWorkspaceVarStructure, GetWorkspaceVar, Method, QuadModel}
 import feh.tec.drone.control.{ControlState, NavdataDemo}

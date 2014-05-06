@@ -4,8 +4,10 @@ import akka.actor.ActorRef
 import feh.tec.drone.control.util.Math._
 import breeze.linalg.DenseVector
 import Environment._
-import feh.tec.drone.control.DataForwarder.Forward
+import feh.tec.drone.control.DataForwarder.{Subscribe, Forward}
 import scala.reflect.runtime.{universe => ru}
+import akka.event.Logging
+import feh.tec.drone.emul.Emulator.NavdataDemoFeed
 
 case class Orientation(pitch: Float, roll: Float, yaw: Float)
 case class Pose(position: Environment#Coordinate, orientation: Orientation)
@@ -44,6 +46,8 @@ trait ByNavdataDemoPoseEstimator extends NavdataDemoPoseEstimator{
 abstract class ByNavdataDemoDiffPoseEstimator(val feed: NavdataDemoFeed, envZero: Environment#Coordinate)
   extends ByNavdataDemoPoseEstimator
 {
+  protected val log = Logging(context.system, this)
+
   var lastData: NavdataDemo = _
   var lastReceived: Long = _
   var lastPosition: Environment#Coordinate = _
@@ -60,7 +64,9 @@ abstract class ByNavdataDemoDiffPoseEstimator(val feed: NavdataDemoFeed, envZero
     }
     lastReceived = t
     lastData = data
-    Pose(lastPosition, orientation(data))
+    val pose = Pose(lastPosition, orientation(data))
+    log.info("Pose estimated: " + pose)
+    pose
   }
 
   def position(current: NavdataDemo, currWhen: Long, old: NavdataDemo, oldWhen: Long, lastPos: Environment#Coordinate): Environment#Coordinate
@@ -97,28 +103,31 @@ object ByMeanVelocityNavdataDemoPoseEstimationFeed extends ByMeanVelocityNavdata
 }
 
 object ByMeanVelocityNavdataDemoPoseEstimator{
-  class Impl(feed: NavdataDemoFeed,
-             val notifyFeed: ByMeanVelocityNavdataDemoPoseEstimationFeed,
-             navdataFeedTag: ru.TypeTag[_ <: NavdataDemoFeed],
+  class Impl(val notifyFeed: ByMeanVelocityNavdataDemoPoseEstimationFeed,
+             navdataFeed: NavdataDemoFeed,
              envZero: Environment#Coordinate,
-             forwarderRef: ActorRef) extends ByNavdataDemoDiffPoseEstimator(feed, envZero)
+             forwarderRef: ForwarderLazyRef) extends ByNavdataDemoDiffPoseEstimator(navdataFeed, envZero)
     with ByMeanVelocityNavdataDemoPoseEstimator
     with PoseNotifier[NavdataDemo]
   {
     type NotifyFeed = ByMeanVelocityNavdataDemoPoseEstimationFeed
-    def forwarder = forwarderRef
+    def forwarder = forwarderRef.get
 
-    val NavdataDemoFeedMatch = BuildDataMatcher(navdataFeedTag)
+    val NavdataDemoFeedMatch = new BuildFeedMatcher(navdataFeed)
     def buildData = {
       case NavdataDemoFeedMatch(data) => data
     }
 
     var on_? = false
-    def start() = { on_? = true }
+    def start() = {
+      on_? = true
+      forwarder ! Subscribe(navdataFeed)
+    }
     def stop() = { on_? = false }
   }
 
-  def props[Feed <: NavdataDemoFeed: ru.TypeTag](feed: Feed, envZero: Environment#Coordinate, forwarder: ActorRef) =
-    FeedNotifierProps(classOf[Impl], feed, ru.typeTag[Feed], envZero, forwarder)
+  def props(navdataFeed: NavdataDemoFeed, notifyFeed: ByMeanVelocityNavdataDemoPoseEstimationFeed,
+            envZero: Environment#Coordinate, forwarder: ForwarderLazyRef) =
+    FeedNotifierProps(classOf[Impl], notifyFeed, navdataFeed, envZero, forwarder)
 
 }

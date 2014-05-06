@@ -1,4 +1,4 @@
-package feh.tec.drone.control.emul
+package feh.tec.drone.emul
 
 import akka.actor.{ActorRef, Props, ActorSystem}
 import feh.tec.matlab._
@@ -58,8 +58,8 @@ object Emulator{
     def parseData = sys.error("use EmulatorFeedChannel's `data` method")
     def dataTag = typeTag[NavdataDemo]
   }
-  def navdataDemoReaderProps(sim: DroneSimulation[Emulator.Model], forwarder: ActorRef) =
-    FeedReader.generic[NavdataDemoFeed.type, EmulatorFeedChannelStub](NavdataDemoFeed, forwarder,
+  def navdataDemoReaderProps(sim: DroneSimulation[Emulator.Model]) =
+    FeedReader.generic[NavdataDemoFeed.type, EmulatorFeedChannelStub](NavdataDemoFeed,
       _ => Some(Await.result(sim.execMethod(_.navdataDemo), sim.defaultTimeout.duration)) //Array[Byte] => Option[NavdataDemoFeed.Data]
     )
 

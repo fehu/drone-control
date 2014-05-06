@@ -1,3 +1,5 @@
+import java.io.File
+import sbt.File
 import sbt.ScalaVersion
 import sbtassembly.Plugin._
 import sbt._
@@ -10,7 +12,7 @@ object  Build extends sbt.Build {
 
   val ScalaVersion = "2.10.3"
   val Version = "0.2"
-  lazy val MatlabPath = sys.env.getOrElse("MATLAB_HOME", sys.error("set MATLAB_HOME environment variable"))
+  val MatlabPath = sys.env.getOrElse("MATLAB_HOME", sys.error("set MATLAB_HOME environment variable"))
 
   import Resolvers._
   import Dependencies._
@@ -45,7 +47,7 @@ object  Build extends sbt.Build {
     lazy val shapeless = "com.chuusai" % "shapeless_2.10.2" % "2.0.0-M1"
 
     object akka{
-      lazy val akkaVersion = "2.2.3"
+      lazy val akkaVersion = "2.3.2"
 
       lazy val actor = "com.typesafe.akka" %% "akka-actor" % akkaVersion
       lazy val remote = "com.typesafe.akka" %% "akka-remote" % akkaVersion
@@ -101,8 +103,8 @@ object  Build extends sbt.Build {
       lazy val breeze = Seq(
         resolvers ++= Resolvers.sonatype,
         libraryDependencies ++= Seq(
-          "org.scalanlp" % "breeze_2.10" % "0.7-SNAPSHOT",
-          "org.scalanlp" % "breeze-natives_2.10" % "0.7-SNAPSHOT"
+          "org.scalanlp" % "breeze_2.10" % "0.7",
+          "org.scalanlp" % "breeze-natives_2.10" % "0.7"
         )
       )
     }
@@ -116,7 +118,7 @@ object  Build extends sbt.Build {
   // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // //
 
   lazy val serverBuildingSettings = assemblySettings ++ Seq(
-    jarName in assembly := s"matlab-server.jar",
+    jarName in assembly := "matlab-server.jar",
     outputPath in assembly <<= (baseDirectory in Compile, jarName in assembly) map {
       (base , jar) =>
         val dir = base / "dist"
@@ -126,20 +128,18 @@ object  Build extends sbt.Build {
     },
     mergeStrategy in assembly <<= (mergeStrategy in assembly, resourceDirectory in Compile){
       (old, resources) =>
-        val mJars = ServerResourceDirectory.fromResource(resources).list().filter(_.endsWith(".jar"))
-
-        {
-          case jar if jar.endsWith(".jar") && mJars.contains(jar) => MergeStrategy.discard
+        { // do not include mathworks jars
+          case path if path.startsWith("com" + File.separator + "mathworks") => MergeStrategy.discard
           case x => old(x)
         }
-    },
-    buildServerJar <<= state map { state =>
-      val extracted = Project.extract(state)
-      val newState = extracted append (Seq(
-        resourceDirectory in Compile <<= (resourceDirectory in Compile) { ServerResourceDirectory.fromResource }
-      ), state)
-      Project.runTask(assembly, newState)
     }
+//    buildServerJar <<= (state, streams) map { (state, s) =>
+//      val extracted = Project.extract(state)
+//      val newState = extracted append (Seq(
+//        resourceDirectory in Compile <<= (resourceDirectory in Compile) { ServerResourceDirectory.fromResource }
+//      ), state)
+//      Project.runTask(assembly, newState)
+//    }
     )
 
   object ServerResourceDirectory{
@@ -177,7 +177,7 @@ object  Build extends sbt.Build {
           |import scala.concurrent.duration._
           |import feh.tec.matlab.server.Default.system._
           |import feh.tec.matlab._
-          |val cl = new MatlabSimClient(server.Default.sel)
+          |val cl = new MatlabSimClient(actorSelection(server.Default.path))
           |val sim = new DroneSimulation(QuadModel.Drone, cl, 10 millis)
         """.stripMargin
     )

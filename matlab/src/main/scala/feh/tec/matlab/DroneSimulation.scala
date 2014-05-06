@@ -119,7 +119,7 @@ object QuadModel{
     def methods = Nil
   }
 
-  class Drone extends Model("quadrotor_emul", "Quadrotor plot/Plotter", dir = "matlab"){
+  class Drone extends Model("quadrotor_emul", "Quadrotor plot/Plotter", dir = /){
     lazy val roll = Param.unit("roll") // why unit ??
     lazy val pitch = Param.unit("pitch")
     lazy val yaw = Param.double("yaw")

@@ -3,12 +3,13 @@ package feh.tec.drone.control.matlab
 import feh.tec.matlab.{GenericMethod, GetWorkspaceVarStructure, Param, Model}
 import feh.tec.drone.control.matlab.DynControl.Control
 import scala.reflect._
+import feh.util.FileUtils._
 
 object DynControl{
   case class Control(pitch: Double, roll: Double, yaw: Double, gaz: Double)
 }
 
-class DynControl extends Model("quadrotor_control", "realsys", dir = "matlab"){
+class DynControl extends Model("quadrotor_control", "realsys", dir = /){
   val x = Param.double("x")
   val y = Param.double("y")
   val z = Param.double("z")

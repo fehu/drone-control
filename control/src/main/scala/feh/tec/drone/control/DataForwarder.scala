@@ -8,6 +8,7 @@ import scala.concurrent.duration.FiniteDuration
 import feh.util._
 import feh.tec.drone.control.FeedReader.ReadRawAndForward
 import feh.tec.drone.control.DataForwarder.Forward
+import akka.event.Logging
 
 /**
  * Forwards data read from drone feeds to listeners
@@ -48,11 +49,11 @@ object DataForwarder{
 */
   def props(channel: IOFeedChannel,
             tryReading: IOFeedChannel => Option[Array[Byte]],
-            readers: ActorRef => Map[DataFeed, Props],
+            readers: ActorRef => Map[DataFeed, FeedReaderProps],
             extraFeedsProps:  Map[DataFeed, FeedNotifierProps],
             tryReadFreqDelay: FiniteDuration)
            (implicit system: ActorSystem) =
-    Props(classOf[GenericDataForwarder], channel, tryReading, readers, tryReadFreqDelay, system)
+    Props(classOf[GenericDataForwarder], channel, tryReading, readers, extraFeedsProps, tryReadFreqDelay, system)
 
   case object Tick
 
@@ -126,10 +127,16 @@ object DataForwarder{
 
     private def listenersFor(feed: DataFeed) = listeners.filter(_._2.contains(feed)).keySet
 
+    protected val log = Logging(context.system, this)
+
     def msgIn: PartialFunction[InMessage, Unit] = {
-      case Subscribe(feed) => _listeners <<=(sender, _ + feed)
+      case Subscribe(feed) =>
+        if(!_listeners.contains(sender)) _listeners += sender -> Set()
+        _listeners <<=(sender, _ + feed)
       case Unsubscribe(feed) => _listeners <<=(sender, _ - feed)
-      case f@Forward(feed, data) if extraFeeds.keySet contains feed => listenersFor(feed) foreach (_ ! f)
+      case f@Forward(feed, data) if extraFeeds.keySet contains feed =>
+        log.info(s"forwarding $feed data: $data")
+        listenersFor(feed) foreach (_ ! f)
       case Read(raw) =>
         for{
           (feed, reader) <- readerForFeed
@@ -151,18 +158,22 @@ object FeedReader{
   case class ReadRawAndForward(raw: Array[Byte], forwardTo: Set[ActorRef]) extends Message
 
   def generic[Feed <: DataFeed, Ch <: IOFeedChannel](feed: Feed,
-                                                     forwarder: ActorRef,
                                                      read: Array[Byte] => Option[Feed#Data]) =
-    FeedReaderProps(Props(classOf[GenericFeedReader[Feed, Ch]], feed, forwarder, read))
+    FeedReaderProps(Props(classOf[GenericFeedReader[Feed, Ch]], feed, read))
 
   class GenericFeedReader[Feed <: DataFeed, Ch <: IOCommandChannel](val feed: Feed,
-                                                                    forwarder: ActorRef,
                                                                     readRaw: Array[Byte] => Feed#Data)
     extends FeedReader
   {
+    protected val log = Logging(context.system, this)
+
     /** reads data from raw bytes received from the drone
       */
-    def read(raw: Array[Byte]) = readRaw(raw).asInstanceOf[feed.Data]
+    def read(raw: Array[Byte]) = {
+      val data = readRaw(raw).asInstanceOf[feed.Data]
+      log.info(s"Data read from feed $feed: $data")
+      data
+    }
 
     def receive = {
       case ReadRawAndForward(arr, to) => to.foreach(_ ! DataForwarder.Forward(feed, read(arr)))
@@ -186,4 +197,8 @@ case class FeedNotifierProps(props: Props){ def get = props }
 
 object FeedNotifierProps{
   def apply(clazz: Class[_], params: Any*) = new FeedNotifierProps(Props(clazz, params: _*))
+}
+
+class ForwarderLazyRef(getF: => ActorRef){
+  lazy val get = getF
 }
