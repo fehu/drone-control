@@ -2,7 +2,7 @@ package feh.tec.drone.control
 
 import akka.actor.{ActorRef, Props, Actor}
 import feh.tec.drone.control.TacticalPlanner.{WaypointsControl, SetWaypoints}
-import feh.tec.matlab.{DroneSimulation, MatlabSimClient}
+import feh.tec.matlab.{ModelMethodException, DroneSimulation, MatlabSimClient}
 import feh.tec.drone.control.util.Math.PowWrapper
 import feh.tec.drone.control.Coordinate.CoordinateOps
 import feh.tec.drone.control.matlab.DynControl
@@ -91,12 +91,12 @@ trait MatlabDynControlTacticalPlanner extends TacticalPlanner{
 
   protected val log = Logging(context.system, this)
 
-  def start(){
-    Await.ready(controlSim.start(simConf.simStartTimeout), simConf.simStartTimeout.duration)
-    forwarder ! Subscribe(navdataFeed)
-    forwarder ! Subscribe(poseEstimationFeed)
-    log.info("Tactical planner started")
-  }
+  def start() =
+    controlSim.start(simConf.simStartTimeout) map { _ =>
+      forwarder ! Subscribe(navdataFeed)
+      forwarder ! Subscribe(poseEstimationFeed)
+      log.info("Tactical planner started")
+    }
 
   def stop(){
     controlSim.stop
@@ -106,7 +106,7 @@ trait MatlabDynControlTacticalPlanner extends TacticalPlanner{
   }
 
   def msgControl(msg: Message) = msg match{
-    case Control.Start => start()
+    case Control.Start => start() onComplete (sender !)
     case Control.Stop => stop()
   }
 
@@ -120,7 +120,10 @@ trait MatlabDynControlTacticalPlanner extends TacticalPlanner{
   }
 
   def getControl(pose: Pose, nav: NavdataDemo) = {
-    val c = execMethod(_.readControl)
+    val c =
+      execMethod(_.readControl) recoverWith{
+        case ModelMethodException(`model`, _, "no new control data available") => Future { noControlDataAvailable }
+      }
     execMethod(_.writeNavdata,
       pose.position.x, pose.position.y, pose.position.z,
       nav.pitch, nav.roll, nav.yaw,
@@ -129,6 +132,14 @@ trait MatlabDynControlTacticalPlanner extends TacticalPlanner{
     )
     c
   }
+
+  private var isFirst = true
+  def noControlDataAvailable =
+    if(isFirst) {
+      isFirst = false
+      DynControl.Control.zero
+    }
+    else sys.error("noControlDataAvailable")
 }
 
 class StraightLineTacticalPlanner(val env: Environment,
@@ -151,7 +162,7 @@ class StraightLineTacticalPlanner(val env: Environment,
     sendCommand()
   }
 
-  def sendCommand() =
+  def sendCommand() = {
     log.info("Sending command called ")
     command(navData) map {
       c =>
@@ -160,11 +171,12 @@ class StraightLineTacticalPlanner(val env: Environment,
     } onFailure{
       case err: Throwable => throw err
     }
-
-  override def start(): Unit = {
-    super.start()
-    sendCommand()
   }
+
+
+//  override def start(): Unit = {
+//    super.start()
+//  }
 
   private def isCloseToPoint = closeToPoint_?(pointDistance) _
 
@@ -183,6 +195,10 @@ class StraightLineTacticalPlanner(val env: Environment,
       DroneApiCommands.Move(MoveFlag.default, c.roll, c.pitch, c.yaw, c.gaz)
     )
   }
+
+  override def receive = super.receive orElse{
+    case StraightLineTacticalPlanner.SendCommand => sender ! sendCommand()
+  }
 }
 
 object StraightLineTacticalPlanner{
@@ -196,4 +212,6 @@ object StraightLineTacticalPlanner{
             pointDistance: Double) =
     Props(classOf[StraightLineTacticalPlanner], env, controller, forwarder, matlab, simConf,
       navdataFeed, poseEstimationFeed, pointDistance)
+
+  case object SendCommand
 }

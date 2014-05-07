@@ -24,7 +24,9 @@ trait DataListener[Data] extends Actor{
 
   def receive = {
     case Forward(feed, data) if feeds contains feed => forwarded(buildData(feed -> data))
-    case Control.Start => start()
+    case Control.Start =>
+      start()
+      sender ! {}
     case Control.Stop => stop()
   }
 }

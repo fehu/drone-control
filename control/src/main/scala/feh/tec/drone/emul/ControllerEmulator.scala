@@ -30,7 +30,7 @@ class ControllerEmulator(val simulator: DroneSimulation[Emulator.Model],
 
   def msgControl: PartialFunction[Control.Message, Unit] = {
     case Control.Start =>
-      simulator.start(startTimeout).map(sender !)
+      simulator.start(startTimeout).onComplete(sender !)
     case Control.Stop =>
       simulator.stop.map(sender !)
   }

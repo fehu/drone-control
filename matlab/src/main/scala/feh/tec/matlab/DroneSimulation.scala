@@ -16,7 +16,10 @@ object Structure{
   def fromMatlab(name: String): Array[Any] => Structure = {
     case Array(Array(names @ _*), Array(Array(vals @ _*))) =>
       Structure(name,
-        names.zip(vals).map{ case (k: String, v) => k -> v.asInstanceOf[Array[Double]].head}.toMap[String, Any]
+        names.zip(vals).map{
+          case (k: String, Array(v)) => k -> v
+          case (k: String, v) => k -> v
+        }.toMap
       )
   }
 }
@@ -36,8 +39,11 @@ object Param{
 }
 
 trait Method[R]{
+  def name: String
   def params: List[Any]
   def result: Array[Any] => R
+
+  override def toString: String = s"Method($name)"
 }
 
 case class GetWorkspaceVar[R : ClassTag](name: String, result: Array[Any] => R) extends Method[R]{
@@ -51,11 +57,16 @@ case class GetWorkspaceVarStructure[R : ClassTag](name: String, sresult: Structu
 
 case class GenericMethod[R](name: String, params: List[ClassTag[_]], nReturn: Int, result: Array[Any] => R) extends Method[R]
 
+case class ModelMethodException(model: Model, method: Method[_], error: String)
+  extends Exception(s"On calling $method of $model: $error")
+
 abstract class Model(val name: String, val execLoopBlock: String, dir: Path){
   def params: List[Param[_]]
   def methods: List[Method[_]]
 
   val path: Path = dir / (name + ".mdl")
+
+  override def toString: String = s"Model($name)"
 }
 
 class DroneSimulation[M <: Model](val model: M, matlab: MatlabSimClient, val defaultTimeout: Timeout)

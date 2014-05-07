@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.60"
+    ComputedModelVersion    "1.61"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -23,16 +23,16 @@ Model {
   MaxMDLFileLineLength	  120
   InitFcn		  "% load parameters of the default quadrotor\ndisp('Quadrotor parameters loaded by InitFcn')\nmdl_quadcopt"
   "er\n"
-  StartFcn		  "h = add_exec_event_listener('quadrotor_emul/Quadrotor plot/Plotter', 'PostOutputs', @simExec);"
+  StartFcn		  "startFunc('quadrotor_emul/Quadrotor plot/Plotter')"
   Created		  "Sat Mar 20 12:13:00 2010"
   Creator		  "corkep"
   UpdateHistory		  "UpdateHistoryNever"
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "fehu"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Mon May 05 22:38:29 2014"
-  RTWModifiedTimeStamp	  321230272
-  ModelVersionFormat	  "1.%<AutoIncrement:60>"
+  LastModifiedDate	  "Tue May 06 07:14:29 2014"
+  RTWModifiedTimeStamp	  321261198
+  ModelVersionFormat	  "1.%<AutoIncrement:61>"
   ConfigurationManager	  "None"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -753,7 +753,7 @@ Model {
   }
   System {
     Name		    "quadrotor_emul"
-    Location		    [1008, 158, 1562, 807]
+    Location		    [1922, 158, 2476, 807]
     Open		    on
     ModelBrowserVisibility  off
     ModelBrowserWidth	    200
@@ -867,7 +867,7 @@ Model {
       SID		      "146"
       Position		      [25, 295, 55, 325]
       ZOrder		      -4
-      Value		      "802"
+      Value		      "0.0"
     }
     Block {
       BlockType		      Constant
@@ -875,7 +875,7 @@ Model {
       SID		      "144"
       Position		      [25, 70, 55, 100]
       ZOrder		      -4
-      Value		      "0"
+      Value		      "0.0"
     }
     Block {
       BlockType		      Constant
@@ -883,7 +883,7 @@ Model {
       SID		      "145"
       Position		      [25, 145, 55, 175]
       ZOrder		      -4
-      Value		      "-0.00"
+      Value		      "0.0"
     }
     Block {
       BlockType		      Constant
@@ -891,7 +891,7 @@ Model {
       SID		      "118"
       Position		      [25, 220, 55, 250]
       ZOrder		      -4
-      Value		      "0"
+      Value		      "0.0"
     }
     Line {
       SrcBlock		      "Control Mixer"

@@ -1,6 +1,6 @@
 function [sys,x0,str,ts] = update_navdata_demo(t,x,u,flag) % dx, dy, dz, droll, dpitch, dyaw
 %get NAVDATA_DEMO from the model
-global navdata_demo
+    global navdata_demo
     switch flag,
       case 0
         sizes = simsizes;

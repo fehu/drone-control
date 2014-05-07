@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.51"
+    ComputedModelVersion    "1.52"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -22,20 +22,20 @@ Model {
   FPTRunName		  "Run 1"
   MaxMDLFileLineLength	  120
   InitFcn		  "% load parameters of the default quadrotor\ndisp('Quadrotor parameters loaded by InitFcn')\nmdl_quadcopt"
-  "er\n\nuav_navdata.x = 0; uav_navdata.y = 0; uav_navdata.z = 0; uav_navdata.yaw = 0; uav_navdata.pitch = 0; uav_navda"
-  "ta.roll = 0; uav_navdata.dx = 0; uav_navdata.dy = 0; uav_navdata.dz =0; uav_navdata.dyaw=0; uav_navdata.dpitch=0; ua"
-  "v_navdata.droll=0;\nuav_control.set = 0; uav_control.pitch = 0; uav_control.roll = 0; uav_control.yaw = 0; uav_contr"
-  "ol.gaz = 0;"
-  StartFcn		  "h = add_exec_event_listener('quadrotor_control/realsys', 'PostOutputs', @simExec);"
+  "er\n\nglobal uav_navdata uav_control\n\nuav_navdata.x = 0; uav_navdata.y = 0; uav_navdata.z = 0; uav_navdata.yaw = 0"
+  "; uav_navdata.pitch = 0; uav_navdata.roll = 0; uav_navdata.dx = 0; uav_navdata.dy = 0; uav_navdata.dz =0; uav_navdat"
+  "a.dyaw=0; uav_navdata.dpitch=0; uav_navdata.droll=0;\nuav_control.set = 0; uav_control.pitch = 0; uav_control.roll ="
+  " 0; uav_control.yaw = 0; uav_control.gaz = 0;"
+  StartFcn		  "startFunc('quadrotor_control/realsys')"
   Created		  "Sat Mar 20 12:13:00 2010"
   Creator		  "corkep"
   UpdateHistory		  "UpdateHistoryNever"
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "fehu"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Tue May 06 02:39:38 2014"
-  RTWModifiedTimeStamp	  321244767
-  ModelVersionFormat	  "1.%<AutoIncrement:51>"
+  LastModifiedDate	  "Tue May 06 06:02:55 2014"
+  RTWModifiedTimeStamp	  321256972
+  ModelVersionFormat	  "1.%<AutoIncrement:52>"
   ConfigurationManager	  "None"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off

@@ -4,7 +4,7 @@ import feh.tec.drone.emul.{DroneModel, EmulatorFeedChannelStub, Emulator}
 import scala.concurrent.duration._
 import feh.tec.matlab.{DroneSimulation, MatlabSimClient}
 import feh.tec.drone.control.Config.SimConfig
-import akka.actor.ActorSystem
+import akka.actor.{Props, ActorRef, ActorSystem}
 import feh.tec.matlab.server
 import scala.concurrent.ExecutionContext
 
@@ -18,12 +18,16 @@ object EmulatorTest {
     forwarderProps = params => 
       DataForwarder.props(new EmulatorFeedChannelStub, _ => None,
         aref => params.feedReaders, params.feedNotifiers, readFreq)(actorSys)
-  ) with NavigationCore with MatlabControlCore with MatlabEmulationCore with CoreSequentialStart
+  ) with NavigationCore with MatlabControlCore with MatlabEmulationCore with CoreSequentialStartImpl
   {
 
+    def startupExecContext = asys.dispatcher
     import asys.dispatcher
 
-    def startExecContext = asys.dispatcher
+    def simulations = controlMatlab :: emulationMatlab :: Nil
+
+    protected val lifetimeController: ActorRef =
+      asys.actorOf(Props(classOf[CoreSequentialStartImpl.LifeController], stages, simulations), "startup-controller")
 
     lazy val controlMatlab = new MatlabSimClient(asys.actorSelection(server.DynControl.path))
     lazy val controlConfig = SimConfig(defaultTimeout = 20 millis, simStartTimeout = 30 seconds, execContext = asys.dispatcher)
@@ -47,7 +51,7 @@ object EmulatorTest {
 
     def poseEstimationFeed = ByMeanVelocityNavdataDemoPoseEstimationFeed
     def poseEstimator = ByMeanVelocityNavdataDemoPoseEstimator
-      .props(navigationFeed, poseEstimationFeed, env.zero, forwarderRef)
+      .props(navigationFeed, poseEstimationFeed, env.zero, forwarderRef, startup = 30 millis)
   } 
 }
 

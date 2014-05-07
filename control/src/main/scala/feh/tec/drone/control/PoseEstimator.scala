@@ -8,6 +8,7 @@ import feh.tec.drone.control.DataForwarder.{Subscribe, Forward}
 import scala.reflect.runtime.{universe => ru}
 import akka.event.Logging
 import feh.tec.drone.emul.Emulator.NavdataDemoFeed
+import akka.util.Timeout
 
 case class Orientation(pitch: Float, roll: Float, yaw: Float)
 case class Pose(position: Environment#Coordinate, orientation: Orientation)
@@ -127,7 +128,7 @@ object ByMeanVelocityNavdataDemoPoseEstimator{
   }
 
   def props(navdataFeed: NavdataDemoFeed, notifyFeed: ByMeanVelocityNavdataDemoPoseEstimationFeed,
-            envZero: Environment#Coordinate, forwarder: ForwarderLazyRef) =
-    FeedNotifierProps(classOf[Impl], notifyFeed, navdataFeed, envZero, forwarder)
+            envZero: Environment#Coordinate, forwarder: ForwarderLazyRef, startup: Timeout) =
+    FeedNotifierProps(classOf[Impl], notifyFeed, navdataFeed, envZero, forwarder)(startup)
 
 }

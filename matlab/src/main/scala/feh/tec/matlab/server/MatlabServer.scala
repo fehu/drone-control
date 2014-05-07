@@ -73,12 +73,16 @@ object MatlabAsyncServer{
       (try Result(f)
       catch {
         case ex: Throwable =>
-          log.error(ex, "server call: error")
+          reportError(ex)
           Error(ex)
       }) |> { r =>
         log.debug("res")
         self ! SResult(id, r)
       }
+
+    def reportError(err: Throwable){
+      log.error(err, "server call: error")
+    }
 
   }
 
@@ -156,10 +160,30 @@ object MatlabQueueServer{
   case object SimStarted
 
   case object InSim
+  case object SimName
+
+  case object SubscribeErrors
+  case object UnsubscribeErrors
 
   class ServerActor(shutdown: () => Unit, putToQueue: Lifted[Any] => Unit, clearQueue: () => Unit)
     extends MatlabAsyncServer.ServerActor(shutdown)
   {
+
+    var errorSubscribers: Map[ActorPath, ActorSelection] = Map()
+
+//    def fixPath(path: ActorPath) = path.toString |> {
+//      p => if (p startsWith "akka://") "akka.tcp" + p.drop(4) else p
+//    }
+    override def reportError(err: Throwable){
+      super.reportError(err)
+      log.info("reporting error to subscribers: " + errorSubscribers.values
+        .map(sel => sel.anchorPath + sel.pathString.drop(1)).mkString(", "))
+      log.debug("errorSubscribers: " + errorSubscribers)
+      errorSubscribers.foreach{ case (_, a) =>
+        log.debug(s"sending error to $a: $err")
+        a ! MatlabAsyncServer.Error(err)
+      }
+    }
 
     def startSim(name: String, block: String) = {
       Matlab.mtEval(name)
@@ -171,24 +195,32 @@ object MatlabQueueServer{
       Matlab.mtFeval("close_system", Array(name), 0)
     }
 
-    var simStartRequester: Option[ActorRef] = None
+    var simStartRequest: Option[ActorRef] = None
 
-    def respondToSimRequester(msg: Any) = simStartRequester.foreach{
-      s =>
-        s ! msg
-        simStartRequester = None
+    def respondToSimRequester(msg: Any) = simStartRequest.map{
+      req =>
+        log.info(s"responding to sim start requester $req: $msg")
+        req ! msg
+        simStartRequest = None
     }
 
     override def receive = super.receive orElse {
+      case SubscribeErrors =>
+        val path = sender.path
+        log.info("new errors subscriber " + path)
+        errorSubscribers += path -> context.system.actorSelection(path)
+      case UnsubscribeErrors =>
+        errorSubscribers -= sender.path
       case StartSim(name, block) =>
         log.info("Start Sim")
-        simStartRequester = Some(sender())
+        simStartRequest = Some(sender())
         guardRequestAndExec(
           try startSim(name, block)
           catch {
             case err: Throwable =>
-              log.error("error on sim start, requester = " + simStartRequester)
+              log.error("error on sim start, requester = " + simStartRequest)
               respondToSimRequester(MatlabAsyncServer.Error(err))
+              reportError(err)// ??
           }
         )
         guardRequestAndExec({
@@ -204,12 +236,14 @@ object MatlabQueueServer{
         simName = None
         stopSim(name)
       case SimStarted =>
-        log.info("Sim Started, requester = " + simStartRequester)
+        log.info("Sim Started, requester = " + simStartRequest)
         respondToSimRequester(SimStarted)
+//        sys.error("AAAARG")
       case SimStopped =>
         log.info("Sim Stopped")
         simName = None
       case InSim => sender ! inSim
+      case SimName => sender ! simName
     }
 
     var simName: Option[String] = None

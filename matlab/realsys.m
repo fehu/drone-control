@@ -41,7 +41,9 @@ end
 function waitForNavdata()    
 global timer_ 
     
-    timer_ = timer('TimerFcn',@checkForNavdata,'ExecutionMode', 'fixedSpacing', ...
+    timer_ = timer('TimerFcn',@checkForNavdata,...
+        'ExecutionMode', 'fixedSpacing', ...
+        'TasksToExecute', 1e12, ... // can't wait for infinite timer
         'Period', 0.05);
     start(timer_)
     wait(timer_)

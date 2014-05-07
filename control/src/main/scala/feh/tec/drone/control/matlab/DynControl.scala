@@ -1,12 +1,18 @@
 package feh.tec.drone.control.matlab
 
-import feh.tec.matlab.{GenericMethod, GetWorkspaceVarStructure, Param, Model}
+import feh.tec.matlab._
 import feh.tec.drone.control.matlab.DynControl.Control
 import scala.reflect._
 import feh.util.FileUtils._
+import feh.tec.matlab.GenericMethod
+import feh.tec.matlab.GetWorkspaceVarStructure
 
 object DynControl{
   case class Control(pitch: Double, roll: Double, yaw: Double, gaz: Double)
+  
+  object Control{
+    def zero = Control(0,0,0,0)
+  }
 }
 
 class DynControl extends Model("quadrotor_control", "realsys", dir = /){
@@ -15,14 +21,19 @@ class DynControl extends Model("quadrotor_control", "realsys", dir = /){
   val z = Param.double("z")
   val yaw = Param.double("yaw")
 
-  val readControl = GetWorkspaceVarStructure("readControl",
-    fields =>
-      Control(
-        fields[Double]("pitch"),
-        fields[Double]("roll"),
-        fields[Double]("yaw"),
-        fields[Double]("gaz")
+  val readControl: GetWorkspaceVarStructure[DynControl.Control] =
+    GetWorkspaceVarStructure("readControl", fields =>
+      fields.get[String]("error")
+        .map{ err => throw ModelMethodException(this, readControl, err) }
+        .getOrElse(
+          Control(
+            fields[Double]("pitch"),
+            fields[Double]("roll"),
+            fields[Double]("yaw"),
+            fields[Double]("gaz")
+          )
       )
+      
   )
 
   val writeNavdata = GenericMethod[Unit]("writeNavdata",

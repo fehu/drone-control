@@ -1,10 +1,14 @@
 package feh.tec.drone.control
 
-import akka.actor.{ActorSystem, Props, ActorRef}
+import akka.actor.{Actor, ActorSystem, Props, ActorRef}
 import feh.tec.matlab.{DroneSimulation, Model, MatlabSimClient}
 import akka.pattern.ask
 import scala.util.{Failure, Success}
-import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import feh.tec.matlab.server.MatlabAsyncServer
+import feh.util._
+import akka.event.Logging
+import feh.tec.drone.control.LifetimeController.Stage
 
 trait Core {
   def env: Environment
@@ -64,23 +68,59 @@ trait MatlabEmulationCore extends Core{
 
 }
 
-/**
- * loses generality on control, for usage with matlab simulation and control
- */
-trait CoreSequentialStart extends Core{
-  self: MatlabEmulationCore with MatlabControlCore =>
+trait LifetimeController extends Actor{
+  def state: LifetimeController.State.Value
+  def state_=(v: LifetimeController.State.Value)
+}
 
-  def startExecContext: ExecutionContext
-  
-  override def start(){
-    implicit def context = startExecContext
-    controller.ask(Control.Start)(emulationConfig.simStartTimeout) flatMap  { _ =>
-      forwarder ! Control.Start
-      (tacticalPlanner ? Control.Start)(controlConfig.simStartTimeout)
-    } onComplete {
-      case Success(_) => // continue with execution
-      case Failure(err) => throw err
+object LifetimeController{
+
+  object State extends Enumeration{
+    type State = Value
+    val Uninitialized, StartingUp, Running, Terminating, Terminated, Exceptional = Value
+  }
+
+  case class Stage(name: String, exec: Lifted[Future[Any]]){
+    override def toString = s"Stage($name)"
+  }
+
+  class LifetimeException(val state: State.Value, msg: String) extends Exception(s"[$state] $msg")
+
+  case class StartupException(errors: Seq[Throwable], stage: Stage)
+    extends LifetimeException(State.StartingUp,
+      s"${errors.length} errors on startup during $stage:\n${errors mkString "\n"}")
+
+  trait SimulationErrorListener extends LifetimeController{
+    def simulations: Seq[MatlabSimClient]
+
+    protected lazy val simByServer = simulations.zipMap(_.server.anchorPath).map(_.swap).toMap
+
+    def receive = {
+      case MatlabAsyncServer.Error(err) => simulationError(simByServer(sender.path), err)
     }
+
+    def simulationError(sim: MatlabSimClient, err: Throwable)
+  }
+
+  trait StartupController extends LifetimeController{
+    def startupStages: Seq[Stage]
+    def currentStage: Option[Stage]
+    def startupTerminated()
+  }
+  
+  trait LifetimeControllerBase extends LifetimeController{
+    private var _state: State.Value = State.Uninitialized
+
+    def state: State.Value = _state
+    def state_=(v: State.Value) = {
+      val old = state
+      _state = v
+      stateChanged(old, v)
+    }
+
+    protected def stateChanged(old: State.Value, n: State.Value) {}
+
+//    def receive: Actor.Receive = Map()
   }
 }
 

@@ -9,7 +9,7 @@ import feh.util._
 import feh.tec.drone.control.FeedReader.ReadRawAndForward
 import feh.tec.drone.control.DataForwarder.Forward
 import akka.event.Logging
-
+import akka.pattern.ask
 /**
  * Forwards data read from drone feeds to listeners
  */
@@ -60,17 +60,16 @@ object DataForwarder{
   def channelReader(channel: IOFeedChannel,
                     tryReading: IOFeedChannel => Option[Array[Byte]],
                     forwarder: ActorRef,
-                    scheduler: Scheduler,
-                    execContext: ExecutionContext,
-                    freq: FiniteDuration) = Props(classOf[ChannelReader], channel, tryReading, forwarder, scheduler, execContext, freq)
+                    freq: FiniteDuration) = Props(classOf[ChannelReader], channel, tryReading, forwarder, freq)
   
   class ChannelReader(channel: IOFeedChannel,
                       tryReading: IOFeedChannel => Option[Array[Byte]],
                       forwarder: ActorRef,
-                      scheduler: Scheduler,
-                      implicit val execContext: ExecutionContext,
                       freq: FiniteDuration) extends Actor{
     var enabled = false
+
+    def scheduler = context.system.scheduler
+    implicit def execContext = context.system.dispatcher
 
     def schedule() = scheduler.scheduleOnce(freq, self, Tick)
 
@@ -96,8 +95,10 @@ object DataForwarder{
                              tryReadFreqDelay: FiniteDuration,
                              implicit val system: ActorSystem) extends DataForwarder{
 
+    import system._
+
     lazy val channelReader = system.actorOf(
-      DataForwarder.channelReader(channel, tryReading, self, system.scheduler, system.dispatcher, tryReadFreqDelay)
+      DataForwarder.channelReader(channel, tryReading, self, tryReadFreqDelay)
     )
     
     lazy val readerForFeed = readers(self).map{
@@ -119,7 +120,14 @@ object DataForwarder{
       case Control.Start =>
         readerForFeed; feedByRef; extraFeeds // init lazy vals
         channelReader ! Control.Start
-        extraFeeds foreach(_._2 ! Control.Start)
+        val s = sender()
+        Future.sequence(extraFeeds map {
+          case (k, v) => (v ? Control.Start)(extraFeedsProps(k).startupTimeout)
+        }) onComplete {
+         t =>
+           log.info("all extra feeds initialized")
+           s ! t.map(_ => Unit)
+        }
       case Control.Stop =>
         channelReader ! Control.Stop
         extraFeeds foreach(_._2 ! Control.Stop)
@@ -193,10 +201,11 @@ trait FeedNotifier extends Actor{
 
 }
 
-case class FeedNotifierProps(props: Props){ def get = props }
+case class FeedNotifierProps(props: Props, startupTimeout: Timeout){ def get = props }
 
 object FeedNotifierProps{
-  def apply(clazz: Class[_], params: Any*) = new FeedNotifierProps(Props(clazz, params: _*))
+  def apply(clazz: Class[_], params: Any*)(startup: Timeout) =
+    new FeedNotifierProps(Props(clazz, params: _*), startup)
 }
 
 class ForwarderLazyRef(getF: => ActorRef){
