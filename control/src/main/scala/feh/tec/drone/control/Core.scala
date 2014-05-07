@@ -88,15 +88,19 @@ object LifetimeController{
 
   case class StartupException(errors: Seq[Throwable], stage: Stage)
     extends LifetimeException(State.StartingUp,
-      s"${errors.length} errors on startup during $stage:\n${errors mkString "\n"}")
+      s"${errors.length} error(s) on startup during $stage:\n${errors mkString "\n"}")
 
   trait SimulationErrorListener extends LifetimeController{
     def simulations: Seq[MatlabSimClient]
 
-    protected lazy val simByServer = simulations.zipMap(_.server.anchorPath).map(_.swap).toMap
+    protected /*lazy */val simByServer = simulations.zipMap{
+      sim =>
+        val s = sim.server
+        s.anchorPath + s.pathString.drop(1)
+    }.map(_.swap).toMap
 
     def receive = {
-      case MatlabAsyncServer.Error(err) => simulationError(simByServer(sender.path), err)
+      case err: MatlabAsyncServer.Error => simulationError(simByServer(sender.path.toString), err)
     }
 
     def simulationError(sim: MatlabSimClient, err: Throwable)

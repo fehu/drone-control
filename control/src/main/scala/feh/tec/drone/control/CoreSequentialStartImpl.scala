@@ -82,7 +82,7 @@ object CoreSequentialStartImpl{
         state = State.StartingUp
         self ! NextStage
       case Control.Stop if state == State.StartingUp => errors :+= new Exception("Stopped by " + sender)
-      case MatlabAsyncServer.Error(err) if state == State.StartingUp =>
+      case err: MatlabAsyncServer.Error if state == State.StartingUp =>
         log.error("on startup: " + err)
         errors :+= err
       case NextStage if state == State.StartingUp =>

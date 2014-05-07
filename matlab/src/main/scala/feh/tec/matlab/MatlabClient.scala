@@ -26,7 +26,7 @@ class MatlabClient(val server: ActorSelection)(implicit val asys: ActorSystem) {
       case arr: Array[Any] => arr
       case any => Array(any)
     }
-    case MatlabAsyncServer.Error(ex) => throw ex
+    case ex: MatlabAsyncServer.Error => throw ex
   }
 }
 
@@ -36,7 +36,7 @@ class MatlabSimClient(server: ActorSelection)(implicit _asys: ActorSystem) exten
   def startSim(name: String, execLoopBlock: String)(implicit timeout: Timeout) =
     server ? MatlabQueueServer.StartSim(name, execLoopBlock) map {
       case SimStarted => Success(SimStarted)
-      case MatlabAsyncServer.Error(err) => Failure(err)
+      case err: MatlabAsyncServer.Error => Failure(err)
     }
 
   def stopSim(name: String)(implicit timeout: Timeout) =
