@@ -39,12 +39,12 @@ global uav_control uav_navdata
 end
 
 function waitForNavdata()    
-global timer_ 
-    
+global timer_     
     timer_ = timer('TimerFcn',@checkForNavdata,...
         'ExecutionMode', 'fixedSpacing', ...
-        'TasksToExecute', 1e12, ... // can't wait for infinite timer
-        'Period', 0.05);
+        'Period', 0.05, ...
+        'TasksToExecute', 1e12); % can't wait for infinite timer
+
     start(timer_)
     wait(timer_)
 end
@@ -55,6 +55,8 @@ global uav_navdata timer_ server
     server.execNext;                                                            %%% server exec
     
     if uav_navdata.read == 0
+        Log('new navdata', uav_navdata)
+        
         stop(timer_)
     end
 end

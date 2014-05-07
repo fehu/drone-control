@@ -98,7 +98,7 @@ trait ByMeanVelocityNavdataDemoPoseEstimator extends ByNavdataDemoDiffPoseEstima
   }
 }
 
-class ByMeanVelocityNavdataDemoPoseEstimationFeed extends AbstractPoseEstimationFeed
+class ByMeanVelocityNavdataDemoPoseEstimationFeed extends AbstractPoseEstimationFeed{ def name = "ByMeanVelocityNavdataDemoPoseEstimation" }
 object ByMeanVelocityNavdataDemoPoseEstimationFeed extends ByMeanVelocityNavdataDemoPoseEstimationFeed{
   def tag = ru.typeTag[ByMeanVelocityNavdataDemoPoseEstimationFeed]
 }
@@ -128,7 +128,8 @@ object ByMeanVelocityNavdataDemoPoseEstimator{
   }
 
   def props(navdataFeed: NavdataDemoFeed, notifyFeed: ByMeanVelocityNavdataDemoPoseEstimationFeed,
-            envZero: Environment#Coordinate, forwarder: ForwarderLazyRef, startup: Timeout) =
-    FeedNotifierProps(classOf[Impl], notifyFeed, navdataFeed, envZero, forwarder)(startup)
+            envZero: Environment#Coordinate, forwarder: ForwarderLazyRef, startup: Timeout, stop: Timeout) =
+    FeedNotifierProps(classOf[Impl], notifyFeed, navdataFeed, envZero, forwarder)("ByMeanVelocityNavdataDemoPoseEstimator",
+      startup, stop)
 
 }

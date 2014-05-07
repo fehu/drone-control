@@ -3,6 +3,8 @@ function writeNavdata(x, y, z, pitch, roll, yaw, ...
                     
 global uav_navdata                    
 
+    Log('writing navdata')
+
     uav_navdata.x = x;
     uav_navdata.y = y;
     uav_navdata.z = z;

@@ -17,6 +17,7 @@ trait Controller extends Actor{
 trait DataFeed{
   type Data
   def dataTag: TypeTag[Data]
+  def name: String
 //  def parseData: Array[Byte] => Data
 }
 

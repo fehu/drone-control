@@ -12,46 +12,55 @@ import scala.concurrent.ExecutionContext
 object EmulatorTest {
   val readFreq: FiniteDuration = 10 millis span
 
-  class Core(implicit actorSys: ActorSystem) extends CoreBase(
-    env = new SimpleEnvironment(),
-    controllerProps = null,
-    forwarderProps = params => 
-      DataForwarder.props(new EmulatorFeedChannelStub, _ => None,
-        aref => params.feedReaders, params.feedNotifiers, readFreq)(actorSys)
-  ) with NavigationCore with MatlabControlCore with MatlabEmulationCore with CoreSequentialStartImpl
+  class Core(implicit actorSys: ActorSystem) extends CoreBase
+    with NavigationCore with MatlabControlCore with MatlabEmulationCore with CoreSequentialStartImpl
   {
 
-    def startupExecContext = asys.dispatcher
+    def env = new SimpleEnvironment()
+
+    def controllerProps = Emulator.controllerProps(emulationSim, emulationConfig.simStartTimeout)
+
+    def forwarderProps = DataForwarder.props(new EmulatorFeedChannelStub, lifetimeController, _ => None,
+      aref => feedReaders, feedNotifiers, readFreq)(actorSys)
+
+    def serviceExecContext = asys.dispatcher
     import asys.dispatcher
 
     def simulations = controlMatlab :: emulationMatlab :: Nil
 
-    protected val lifetimeController: ActorRef =
+    protected lazy val lifetimeController: ActorRef =
       asys.actorOf(Props(classOf[CoreSequentialStartImpl.LifeController], stages, simulations), "startup-controller")
 
     lazy val controlMatlab = new MatlabSimClient(asys.actorSelection(server.DynControl.path))
-    lazy val controlConfig = SimConfig(defaultTimeout = 50 millis, simStartTimeout = 30 seconds, execContext = asys.dispatcher)
+    lazy val controlConfig = SimConfig(
+      defaultTimeout = 1 second,
+      simStartTimeout = 30 seconds,
+      simStopTimeout =  100 millis,
+      execContext = asys.dispatcher)
 
     lazy val emulationMatlab = new MatlabSimClient(asys.actorSelection(server.DroneEmul.path))
     lazy val emulationModel = new DroneModel
-    lazy val emulationConfig = SimConfig(defaultTimeout = 20 millis, simStartTimeout = 30 seconds, execContext = asys.dispatcher)
+    lazy val emulationConfig = SimConfig(
+      defaultTimeout = 20 millis,
+      simStartTimeout = 30 seconds,
+      simStopTimeout =  100 millis,
+      execContext = asys.dispatcher
+    )
     lazy val emulationSim =
       new DroneSimulation[Emulator.Model](emulationModel, emulationMatlab, emulationConfig.defaultTimeout)
 
-    override lazy val controller = asys.actorOf(Emulator.controllerProps(emulationSim, emulationConfig.simStartTimeout))
-
-    def tacticalPlanner = asys.actorOf(StraightLineTacticalPlanner
+    lazy val tacticalPlanner = asys.actorOf(StraightLineTacticalPlanner
       .props(env, controller, forwarder, controlMatlab, controlConfig, navigationFeed, poseEstimationFeed,
-        pointDistance = 0.1))
+        pointDistance = 0.1), "core-tactical-planner")
 
     lazy val forwarderRef = new ForwarderLazyRef(forwarder)
     
-    def navigationFeed = Emulator.NavdataDemoFeed
+    lazy val navigationFeed = Emulator.NavdataDemoFeed
     def navigationFeedReader = Emulator.navdataDemoReaderProps(emulationSim)
 
-    def poseEstimationFeed = ByMeanVelocityNavdataDemoPoseEstimationFeed
+    lazy val poseEstimationFeed = ByMeanVelocityNavdataDemoPoseEstimationFeed
     def poseEstimator = ByMeanVelocityNavdataDemoPoseEstimator
-      .props(navigationFeed, poseEstimationFeed, env.zero, forwarderRef, startup = 30 millis)
+      .props(navigationFeed, poseEstimationFeed, env.zero, forwarderRef, startup = 30 millis, stop = 30 millis)
   } 
 }
 

@@ -10,6 +10,8 @@ import feh.tec.drone.control.FeedReader.ReadRawAndForward
 import feh.tec.drone.control.DataForwarder.Forward
 import akka.event.Logging
 import akka.pattern.ask
+import feh.tec.drone.control.LifetimeController.LifetimeException
+
 /**
  * Forwards data read from drone feeds to listeners
  */
@@ -48,12 +50,14 @@ object DataForwarder{
             (implicit system: ActorSystem) = system.actorOf(props(controller, channel, readers, controlTimeout))
 */
   def props(channel: IOFeedChannel,
+            lifetimeController: ActorRef,
             tryReading: IOFeedChannel => Option[Array[Byte]],
             readers: ActorRef => Map[DataFeed, FeedReaderProps],
             extraFeedsProps:  Map[DataFeed, FeedNotifierProps],
             tryReadFreqDelay: FiniteDuration)
            (implicit system: ActorSystem) =
-    Props(classOf[GenericDataForwarder], channel, tryReading, readers, extraFeedsProps, tryReadFreqDelay, system)
+    Props(classOf[GenericDataForwarder],
+      channel, lifetimeController, tryReading, readers, extraFeedsProps, tryReadFreqDelay, system)
 
   case object Tick
 
@@ -89,6 +93,7 @@ object DataForwarder{
   }
 
   class GenericDataForwarder(val channel: IOFeedChannel,
+                             val lifetimeController: ActorRef,
                              tryReading: IOFeedChannel => Option[Array[Byte]],
                              readers: ActorRef => Map[DataFeed, FeedReaderProps],
                              extraFeedsProps:  Map[DataFeed, FeedNotifierProps],
@@ -102,7 +107,7 @@ object DataForwarder{
     )
     
     lazy val readerForFeed = readers(self).map{
-      case (feed, props) => feed -> system.actorOf(props.get)
+      case (feed, props) => feed -> system.actorOf(props.get, props.name)
     }
     lazy val feedByRef = readerForFeed.map(_.swap).toMap
 
@@ -114,7 +119,7 @@ object DataForwarder{
       case in: InMessage => msgIn(in)
     }
 
-    lazy val extraFeeds = extraFeedsProps.mapValues(system actorOf _.props)
+    lazy val extraFeeds = extraFeedsProps.mapValues(props => system.actorOf(props.get, props.name))
 
     def msgControl: PartialFunction[Control.Message, Unit] = {
       case Control.Start =>
@@ -129,8 +134,11 @@ object DataForwarder{
            s ! t.map(_ => Unit)
         }
       case Control.Stop =>
+        log.info("stopping forwarder")
         channelReader ! Control.Stop
-        extraFeeds foreach(_._2 ! Control.Stop)
+        Future.sequence(extraFeeds map{
+          case (k, v) => v.ask(Control.Stop)(extraFeedsProps(k).stopTimeout)
+        }) onComplete (sender !)
     }
 
     private def listenersFor(feed: DataFeed) = listeners.filter(_._2.contains(feed)).keySet
@@ -138,13 +146,21 @@ object DataForwarder{
     protected val log = Logging(context.system, this)
 
     def msgIn: PartialFunction[InMessage, Unit] = {
-      case Subscribe(feed) if sender != ActorRef.noSender =>
+      case Subscribe(feed) /*if sender != ActorRef.noSender*/ =>
+        log.info(s"subscribed: " + sender)
         if(!_listeners.contains(sender)) _listeners += sender -> Set()
         _listeners <<=(sender, _ + feed)
-      case Unsubscribe(feed) if sender != ActorRef.noSender => _listeners <<=(sender, _ - feed)
+      case Unsubscribe(feed) /*if sender != ActorRef.noSender*/ =>
+        log.info(s"unsubscribed: " + sender)
+        _listeners <<=(sender, _ - feed)
+      // forwarding notifiers messages
       case f@Forward(feed, data) if extraFeeds.keySet contains feed =>
-        log.info(s"forwarding $feed data: $data")
+        log.debug(s"forwarding $feed data: $data")
         listenersFor(feed) foreach (_ ! f)
+      // forwarding lifetime exceptions
+      case lerr: LifetimeException =>
+        log.debug(s"forwarding error:  $lerr")
+        lifetimeController ! lerr
       case Read(raw) =>
         for{
           (feed, reader) <- readerForFeed
@@ -154,7 +170,7 @@ object DataForwarder{
   }
 }
 
-case class FeedReaderProps(props: Props){ def get: Props = props }
+case class FeedReaderProps(props: Props, name: String){ def get: Props = props }
 object FeedReaderProps{
   implicit def feedReaderPropsWrapper(fp: FeedReaderProps) = fp.props
 }
@@ -167,7 +183,7 @@ object FeedReader{
 
   def generic[Feed <: DataFeed, Ch <: IOFeedChannel](feed: Feed,
                                                      read: Array[Byte] => Option[Feed#Data]) =
-    FeedReaderProps(Props(classOf[GenericFeedReader[Feed, Ch]], feed, read))
+    FeedReaderProps(Props(classOf[GenericFeedReader[Feed, Ch]], feed, read), "GenericFeedReader-" + feed.name)
 
   class GenericFeedReader[Feed <: DataFeed, Ch <: IOCommandChannel](val feed: Feed,
                                                                     readRaw: Array[Byte] => Feed#Data)
@@ -201,11 +217,11 @@ trait FeedNotifier extends Actor{
 
 }
 
-case class FeedNotifierProps(props: Props, startupTimeout: Timeout){ def get = props }
+case class FeedNotifierProps(props: Props, name: String, startupTimeout: Timeout, stopTimeout: Timeout){ def get = props }
 
 object FeedNotifierProps{
-  def apply(clazz: Class[_], params: Any*)(startup: Timeout) =
-    new FeedNotifierProps(Props(clazz, params: _*), startup)
+  def apply(clazz: Class[_], params: Any*)(name: String, startup: Timeout, stop: Timeout) =
+    new FeedNotifierProps(Props(clazz, params: _*), name, startup, stop)
 }
 
 class ForwarderLazyRef(getF: => ActorRef){

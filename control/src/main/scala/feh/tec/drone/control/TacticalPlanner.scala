@@ -14,6 +14,8 @@ import feh.tec.drone.control.Control.Message
 import akka.event.Logging
 import feh.tec.drone.control.DataForwarder.{Unsubscribe, Subscribe}
 import feh.tec.drone.emul.Emulator.NavdataDemoFeed
+import feh.tec.drone.control.LifetimeController.RunException
+import feh.util._
 
 object TacticalPlanner{
 
@@ -99,7 +101,7 @@ trait MatlabDynControlTacticalPlanner extends TacticalPlanner{
     }
 
   def stop(){
-    controlSim.stop
+    controlSim.stop.map(_ => log.info("control simulation stopped")) onComplete (sender() !)
     forwarder ! Unsubscribe(navdataFeed)
     forwarder ! Unsubscribe(poseEstimationFeed)
     log.info("Tactical planner stopped")
@@ -163,13 +165,15 @@ class StraightLineTacticalPlanner(val env: Environment,
   }
 
   def sendCommand() = {
-    log.info("Sending command called ")
+    log.info("called sendCommand")
     command(navData) map {
       c =>
-        log.info("Sending command: " + c)
+        log.info("Sending command to drone controller: " + c)
         controller ! c
     } onFailure{
-      case err: Throwable => throw err
+      case err: Throwable =>
+        log.debug("failed to generate/send command " + err) // todo remove
+        forwarder ! RunException(self, "failed to generate/send command", err)
     }
   }
 
@@ -183,17 +187,18 @@ class StraightLineTacticalPlanner(val env: Environment,
   /** what's next to do
     */
   def command = nav => {
-    log.info("requesting next command from tactical planner")
+    log.info("next command requested from tactical planner")
     if(destination.nonEmpty && isCloseToPoint(poseEstimation.position)){
 //      strategicPlanner ! WaypointReached(destination.get, System.currentTimeMillis())
       nextWaypoint()
       destination foreach (setControlDestination(_))
     }
 
-    log.info("getting control data from matlab")
     getControl(poseEstimation, nav).map (c =>
       DroneApiCommands.Move(MoveFlag.default, c.roll, c.pitch, c.yaw, c.gaz)
-    )
+    ) map (_ $${
+      s => log.info("got control data from matlab: " + s)
+    })
   }
 
   override def receive = super.receive orElse{

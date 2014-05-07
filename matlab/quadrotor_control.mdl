@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.56"
+    ComputedModelVersion    "1.57"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -22,20 +22,21 @@ Model {
   FPTRunName		  "Run 1"
   MaxMDLFileLineLength	  120
   InitFcn		  "% load parameters of the default quadrotor\ndisp('Quadrotor parameters loaded by InitFcn')\nmdl_quadcopt"
-  "er\n\nglobal uav_navdata uav_control\n\nuav_navdata.read=0; uav_navdata.x = 0; uav_navdata.y = 0; uav_navdata.z = 0;"
+  "er\n\nglobal uav_navdata uav_control\n\nuav_navdata.read=1; uav_navdata.x = 0; uav_navdata.y = 0; uav_navdata.z = 0;"
   " uav_navdata.yaw = 0; uav_navdata.pitch = 0; uav_navdata.roll = 0; uav_navdata.dx = 0; uav_navdata.dy = 0; uav_navda"
   "ta.dz =0; uav_navdata.dyaw=0; uav_navdata.dpitch=0; uav_navdata.droll=0;\nuav_control.set = 0; uav_control.pitch = 0"
   "; uav_control.roll = 0; uav_control.yaw = 0; uav_control.gaz = 0;"
-  StartFcn		  "startFunc('quadrotor_control/realsys')"
+  StartFcn		  "h = add_exec_event_listener('quadrotor_control/realsys', 'PostOutputs', @simExec); startFunc('quadrotor"
+  "_control/realsys'); "
   Created		  "Sat Mar 20 12:13:00 2010"
   Creator		  "corkep"
   UpdateHistory		  "UpdateHistoryNever"
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "fehu"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Tue May 06 23:41:30 2014"
-  RTWModifiedTimeStamp	  321320488
-  ModelVersionFormat	  "1.%<AutoIncrement:56>"
+  LastModifiedDate	  "Wed May 07 03:58:59 2014"
+  RTWModifiedTimeStamp	  321335938
+  ModelVersionFormat	  "1.%<AutoIncrement:57>"
   ConfigurationManager	  "None"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off

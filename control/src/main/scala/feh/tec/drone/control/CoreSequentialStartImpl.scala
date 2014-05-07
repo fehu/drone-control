@@ -26,10 +26,10 @@ trait CoreSequentialStartImpl extends Core{
   // CoreSequentialStart.StartupController
   protected val lifetimeController: ActorRef
 
-  def startupExecContext: ExecutionContext
+  def serviceExecContext: ExecutionContext
 
   def stages: Seq[Stage] = {
-    implicit def ec = startupExecContext
+    implicit def ec = serviceExecContext
     Seq(
       Stage("controller emulator", () => controller.ask(Control.Start)(emulationConfig.simStartTimeout).mapTo[Try[Any]].map(_.get)),
       Stage("forwarder", () => forwarder.ask(Control.Start)(emulationConfig.simStartTimeout).mapTo[Try[Any]].map(_.get)),
@@ -41,6 +41,17 @@ trait CoreSequentialStartImpl extends Core{
 
   override def start(){
     lifetimeController ! Control.Start
+  }
+
+  override def stop() = {
+    implicit def ec = serviceExecContext
+    implicit def t = controlConfig.simStopTimeout
+
+    tacticalPlanner ? Control.Stop flatMap { _ =>
+      controller ? Control.Stop
+    } flatMap { _ =>
+      forwarder ? Control.Stop
+    } onComplete(_.get)
   }
 }
 

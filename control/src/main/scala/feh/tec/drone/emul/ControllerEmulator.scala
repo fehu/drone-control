@@ -32,7 +32,11 @@ class ControllerEmulator(val simulator: DroneSimulation[Emulator.Model],
     case Control.Start =>
       simulator.start(startTimeout).onComplete(sender !)
     case Control.Stop =>
-      simulator.stop.map(sender !)
+      log.info("stopping drone simulator")
+      simulator.stop.map{ _ =>
+        log.info("drone simulator stopped")
+
+      } onComplete (sender !)
   }
   
   def msgReq: PartialFunction[Controller.Req, Unit] = Map()
@@ -64,6 +68,7 @@ object Emulator{
   object NavdataDemoFeed extends NavdataDemoFeed{
     def parseData = sys.error("use EmulatorFeedChannel's `data` method")
     def dataTag = typeTag[NavdataDemo]
+    def name = "NavdataDemo"
   }
   def navdataDemoReaderProps(sim: DroneSimulation[Emulator.Model]) =
     FeedReader.generic[NavdataDemoFeed.type, EmulatorFeedChannelStub](NavdataDemoFeed,

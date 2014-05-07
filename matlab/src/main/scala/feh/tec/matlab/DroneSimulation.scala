@@ -78,9 +78,7 @@ class DroneSimulation[M <: Model](val model: M, matlab: MatlabSimClient, val def
 
   def start(timeout: Timeout): Future[Unit] = matlab.startSim(model.name, model.execLoopBlock)(timeout).map(_ => {})
 
-  def stop(implicit timeout: Timeout = defaultTimeout): Future[Unit] = matlab
-    .feval("set_param", model.name :: "SimulationCommand" :: "stop" :: Nil, 0)
-    .map{_ => Unit}
+  def stop(implicit timeout: Timeout = defaultTimeout): Future[Unit] = matlab.stopSim(model.name).map(_ => {})
 
   def setParam[T](paramSel: M => Param[T], v: T)(implicit timeout: Timeout = defaultTimeout): Future[Unit] =
     setParam(paramSel(model), v)

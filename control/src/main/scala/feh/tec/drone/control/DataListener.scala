@@ -27,7 +27,9 @@ trait DataListener[Data] extends Actor{
     case Control.Start =>
       start()
       sender ! {}
-    case Control.Stop => stop()
+    case Control.Stop =>
+      stop()
+      sender ! {}
   }
 }
 

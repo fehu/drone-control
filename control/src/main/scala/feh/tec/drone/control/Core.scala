@@ -74,7 +74,7 @@ trait LifetimeController extends Actor{
 }
 
 object LifetimeController{
-
+  
   object State extends Enumeration{
     type State = Value
     val Uninitialized, StartingUp, Running, Terminating, Terminated, Exceptional = Value
@@ -84,8 +84,15 @@ object LifetimeController{
     override def toString = s"Stage($name)"
   }
 
-  class LifetimeException(val state: State.Value, msg: String) extends Exception(s"[$state] $msg")
+  class LifetimeException(val state: State.Value, msg: String) extends Exception(s"[$state] $msg") with DataForwarder.InMessage
+  
+  case class RunException(in: ActorRef, msg: String, cause: Option[Throwable]) 
+    extends LifetimeException(State.Running, s"error in $in: $msg" + cause.map(c => s", because of $c").getOrElse(""))
 
+  object RunException{
+    def apply(in: ActorRef, msg: String, cause: Throwable): RunException = new RunException(in, msg, Option(cause))
+  }
+  
   case class StartupException(errors: Seq[Throwable], stage: Stage)
     extends LifetimeException(State.StartingUp,
       s"${errors.length} error(s) on startup during $stage:\n${errors mkString "\n"}")
@@ -128,25 +135,19 @@ object LifetimeController{
   }
 }
 
-object CoreBase{
-  case class ForwarderParams(controller: ActorRef,
-                             feedReaders: Map[DataFeed, FeedReaderProps],
-                             feedNotifiers: Map[DataFeed, FeedNotifierProps])
-}
+//object CoreBase{
+//  case class ForwarderParams(droneController: ActorRef,
+//                             lifetimeController: ActorRef,
+//                             feedReaders: Map[DataFeed, FeedReaderProps],
+//                             feedNotifiers: Map[DataFeed, FeedNotifierProps])
+//}
 
-abstract class CoreBase(val env: Environment,
-                        controllerProps: Props,
-                        forwarderProps: CoreBase.ForwarderParams => Props
-                        /*controlProps: Set[Props],
-                        val feedReaders: Map[DataFeed, FeedReaderProps] = Map(),
-                        val feedNotifiers: Map[DataFeed, FeedNotifierProps] = Map()*/)
-                       (implicit val asys: ActorSystem) extends Core{
+abstract class CoreBase(implicit val asys: ActorSystem) extends Core{
+  def controllerProps: Props
+  def forwarderProps: Props
+
   lazy val controller = asys.actorOf(controllerProps, "core-controller")
-  lazy val forwarder = asys.actorOf(
-    forwarderProps(CoreBase.ForwarderParams(controller, feedReaders, feedNotifiers)),
-    "core-forwarder"
-  )
-
+  lazy val forwarder = asys.actorOf(forwarderProps, "core-forwarder")
   def feedReaders: Map[DataFeed, FeedReaderProps] = Map()
   def feedNotifiers: Map[DataFeed, FeedNotifierProps] = Map()
   def control: Set[ActorRef] = Set()

@@ -1,4 +1,5 @@
 function simExec(block, eventData)
-global server;
+global server
+
     server.execNext;
 end

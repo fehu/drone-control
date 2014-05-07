@@ -180,9 +180,6 @@ object MatlabQueueServer{
 
     var errorSubscribers: Map[ActorPath, ActorSelection] = Map()
 
-//    def fixPath(path: ActorPath) = path.toString |> {
-//      p => if (p startsWith "akka://") "akka.tcp" + p.drop(4) else p
-//    }
     override def reportError(err: Throwable, request: MatRequest, requester: ActorPath){
       super.reportError(err, request, requester)
       log.info("reporting error to subscribers: " + errorSubscribers.values
@@ -195,13 +192,15 @@ object MatlabQueueServer{
     }
 
     def startSim(name: String, block: String) = {
-      Matlab.mtEval(name)
+      Matlab.mtEval("if gcs, close_system(gcs), end")
+      Matlab.mtFeval("open_system", Array(name), 0)
       Matlab.mtFeval("setSimOnStart", Array(name, block), 0)
       Matlab.mtFeval("sim", Array(name), 1)
     }
     def stopSim(name: String) = {
+      log.info(s"stopping simulation $name")
       Matlab.mtFeval("set_param", Array(name, "SimulationCommand", "stop"), 0)
-      Matlab.mtFeval("close_system", Array(name), 0)
+//      Matlab.mtFeval("close_system", Array(name), 0)
     }
 
     var simStartRequest: Option[ActorRef] = None
@@ -247,7 +246,7 @@ object MatlabQueueServer{
       case StopSim if inSim =>
         log.info("Stop Sim")
         val name = simName.get
-        simName = None
+//        simName = None
         stopSim(name)
       case SimStarted =>
         log.info("Sim Started, requester = " + simStartRequest)
