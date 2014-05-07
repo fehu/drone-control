@@ -141,9 +141,10 @@ class MatlabQueueServer(name: String)(implicit asystem: ActorSystem) extends Mat
     asystem.log.debug("Executed next")
   })
 
+  /** Notifies the server that a simulation has started (startFcn hook)
+   */
   def simStarted() = {
     serverActor ! SimStarted
-    sys.error("ASDFAXDASD")
   }
 }
 

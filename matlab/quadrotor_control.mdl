@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.52"
+    ComputedModelVersion    "1.56"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -22,10 +22,10 @@ Model {
   FPTRunName		  "Run 1"
   MaxMDLFileLineLength	  120
   InitFcn		  "% load parameters of the default quadrotor\ndisp('Quadrotor parameters loaded by InitFcn')\nmdl_quadcopt"
-  "er\n\nglobal uav_navdata uav_control\n\nuav_navdata.x = 0; uav_navdata.y = 0; uav_navdata.z = 0; uav_navdata.yaw = 0"
-  "; uav_navdata.pitch = 0; uav_navdata.roll = 0; uav_navdata.dx = 0; uav_navdata.dy = 0; uav_navdata.dz =0; uav_navdat"
-  "a.dyaw=0; uav_navdata.dpitch=0; uav_navdata.droll=0;\nuav_control.set = 0; uav_control.pitch = 0; uav_control.roll ="
-  " 0; uav_control.yaw = 0; uav_control.gaz = 0;"
+  "er\n\nglobal uav_navdata uav_control\n\nuav_navdata.read=0; uav_navdata.x = 0; uav_navdata.y = 0; uav_navdata.z = 0;"
+  " uav_navdata.yaw = 0; uav_navdata.pitch = 0; uav_navdata.roll = 0; uav_navdata.dx = 0; uav_navdata.dy = 0; uav_navda"
+  "ta.dz =0; uav_navdata.dyaw=0; uav_navdata.dpitch=0; uav_navdata.droll=0;\nuav_control.set = 0; uav_control.pitch = 0"
+  "; uav_control.roll = 0; uav_control.yaw = 0; uav_control.gaz = 0;"
   StartFcn		  "startFunc('quadrotor_control/realsys')"
   Created		  "Sat Mar 20 12:13:00 2010"
   Creator		  "corkep"
@@ -33,9 +33,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "fehu"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Tue May 06 06:02:55 2014"
-  RTWModifiedTimeStamp	  321256972
-  ModelVersionFormat	  "1.%<AutoIncrement:52>"
+  LastModifiedDate	  "Tue May 06 23:41:30 2014"
+  RTWModifiedTimeStamp	  321320488
+  ModelVersionFormat	  "1.%<AutoIncrement:56>"
   ConfigurationManager	  "None"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -992,7 +992,7 @@ Model {
       BlockType		      Clock
       Name		      "Clock"
       SID		      "70"
-      Position		      [655, 379, 700, 401]
+      Position		      [655, 389, 700, 411]
       ZOrder		      -7
       BackgroundColor	      "yellow"
       ShowName		      off
@@ -1538,7 +1538,7 @@ Model {
     Line {
       SrcBlock		      "y"
       SrcPort		      1
-      Points		      [40, 0; 0, -40]
+      Points		      [10, 0; 0, -40]
       DstBlock		      "Mux1"
       DstPort		      2
     }
@@ -1744,7 +1744,7 @@ Model {
     Line {
       SrcBlock		      "Clock"
       SrcPort		      1
-      Points		      [0, 10; 90, 0; 0, 20]
+      Points		      [90, 0; 0, 20]
       DstBlock		      "Mux"
       DstPort		      1
     }
@@ -1877,14 +1877,14 @@ Model {
       Labels		      [2, 0]
       SrcBlock		      "Bus\nCreator"
       SrcPort		      1
-      Points		      [45, 0; 0, 330; -310, 0]
+      Points		      [20, 155; -190, 195; -95, 0]
       Branch {
-	Points			[0, -65]
+	Points			[0, -85]
 	DstBlock		"Mux"
 	DstPort			2
       }
       Branch {
-	Points			[-710, 0; 0, -60]
+	Points			[-715, 0; 0, -65]
 	Branch {
 	  DstBlock		  "Bus\nSelector6"
 	  DstPort		  1
@@ -1892,7 +1892,7 @@ Model {
 	Branch {
 	  Points		  [0, -130]
 	  Branch {
-	    Points		    [0, -120]
+	    Points		    [0, -120; 5, 0]
 	    Branch {
 	      DstBlock		      "Bus\nSelector4"
 	      DstPort		      1
@@ -1906,7 +1906,7 @@ Model {
 	      Branch {
 		Points			[0, -35]
 		Branch {
-		  Points		  [0, -35]
+		  Points		  [0, -50]
 		  DstBlock		  "Bus\nSelector1"
 		  DstPort		  1
 		}
@@ -1991,7 +1991,7 @@ Model {
     Annotation {
       SID		      "100"
       Name		      "position\nloop"
-      Position		      [277, 45]
+      Position		      [257, 30]
       HorizontalAlignment     "left"
     }
     Annotation {

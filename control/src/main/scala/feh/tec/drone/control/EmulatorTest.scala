@@ -10,7 +10,7 @@ import scala.concurrent.ExecutionContext
 
 
 object EmulatorTest {
-  val readFreq: FiniteDuration = 30 millis span
+  val readFreq: FiniteDuration = 10 millis span
 
   class Core(implicit actorSys: ActorSystem) extends CoreBase(
     env = new SimpleEnvironment(),
@@ -30,7 +30,7 @@ object EmulatorTest {
       asys.actorOf(Props(classOf[CoreSequentialStartImpl.LifeController], stages, simulations), "startup-controller")
 
     lazy val controlMatlab = new MatlabSimClient(asys.actorSelection(server.DynControl.path))
-    lazy val controlConfig = SimConfig(defaultTimeout = 20 millis, simStartTimeout = 30 seconds, execContext = asys.dispatcher)
+    lazy val controlConfig = SimConfig(defaultTimeout = 50 millis, simStartTimeout = 30 seconds, execContext = asys.dispatcher)
 
     lazy val emulationMatlab = new MatlabSimClient(asys.actorSelection(server.DroneEmul.path))
     lazy val emulationModel = new DroneModel
