@@ -16,6 +16,7 @@ import feh.tec.drone.control.LifetimeController.StartupException
 import scala.util.Success
 import feh.tec.drone.control.LifetimeController.Stage
 import scala.concurrent.{Future, ExecutionContext}
+import feh.tec.drone.control.TacticalPlanner.SetWaypoints
 
 /**
  * loses generality on control, for usage with matlab simulation and control
@@ -34,8 +35,9 @@ trait CoreSequentialStartImpl extends Core{
       Stage("controller emulator", () => controller.ask(Control.Start)(emulationConfig.simStartTimeout).mapTo[Try[Any]].map(_.get)),
       Stage("forwarder", () => forwarder.ask(Control.Start)(emulationConfig.simStartTimeout).mapTo[Try[Any]].map(_.get)),
       Stage("matlab tactical control", () => (tacticalPlanner ? Control.Start)(controlConfig.simStartTimeout).mapTo[Try[Any]].map(_.get)),
-      Stage("start trajectory execution by TacticalPlanner", () =>
-        (tacticalPlanner ? StraightLineTacticalPlanner.SendCommand)(controlConfig.defaultTimeout))
+      Stage("set waypoint", () => Future.successful{ tacticalPlanner ! SetWaypoints((4, 4, -4)) })
+//      Stage("start trajectory execution by TacticalPlanner", () =>
+//        (tacticalPlanner ? StraightLineTacticalPlanner.SendCommand)(controlConfig.defaultTimeout))
     )
   }
 

@@ -58,7 +58,7 @@ trait TacticalPlanner extends Actor{
   var navData: NavdataDemo = NavdataDemo.zero
 
   def navdataFeed: NavdataDemoFeed
-  def poseEstimationFeed: AbstractPoseEstimationFeed
+  def poseEstimationFeed: PoseEstimationFeed
 
   protected val NavdataMatch = new BuildFeedMatcher(navdataFeed)
   protected val PoseEstimationMatch = new BuildFeedMatcher(poseEstimationFeed)
@@ -122,26 +122,18 @@ trait MatlabDynControlTacticalPlanner extends TacticalPlanner{
   }
 
   def getControl(pose: Pose, nav: NavdataDemo) = {
-    val c =
-      execMethod(_.readControl) recoverWith{
-        case ModelMethodException(`model`, _, "no new control data available") => Future { noControlDataAvailable }
-      }
     execMethod(_.writeNavdata,
       pose.position.x, pose.position.y, pose.position.z,
       nav.pitch, nav.roll, nav.yaw,
       nav.vx, nav.vy, nav.vz,
       nav.dpitch, nav.droll, nav.dyaw
     )
-    c
+    execMethod(_.readControl) recoverWith{
+      case ModelMethodException(`model`, _, "no new control data available") => Future { noControlDataAvailable }
+    }
   }
 
-  private var isFirst = true
-  def noControlDataAvailable =
-    if(isFirst) {
-      isFirst = false
-      DynControl.Control.zero
-    }
-    else sys.error("noControlDataAvailable")
+  def noControlDataAvailable: DynControl.Control = sys.error("noControlDataAvailable") // todo
 }
 
 class StraightLineTacticalPlanner(val env: Environment,
@@ -151,7 +143,7 @@ class StraightLineTacticalPlanner(val env: Environment,
                                   val matlab: MatlabSimClient,
                                   val simConf: SimConfig,
                                   val navdataFeed: NavdataDemoFeed,
-                                  val poseEstimationFeed: AbstractPoseEstimationFeed,
+                                  val poseEstimationFeed: PoseEstimationFeed,
                                   val pointDistance: Double)
   extends MatlabDynControlTacticalPlanner with TacticalPlannerHelper
 {
@@ -213,7 +205,7 @@ object StraightLineTacticalPlanner{
             matlab: MatlabSimClient,
             simConf: SimConfig,
             navdataFeed: NavdataDemoFeed,
-            poseEstimationFeed: AbstractPoseEstimationFeed,
+            poseEstimationFeed: PoseEstimationFeed,
             pointDistance: Double) =
     Props(classOf[StraightLineTacticalPlanner], env, controller, forwarder, matlab, simConf,
       navdataFeed, poseEstimationFeed, pointDistance)

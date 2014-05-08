@@ -70,9 +70,13 @@ object Emulator{
     def dataTag = typeTag[NavdataDemo]
     def name = "NavdataDemo"
   }
+
+  protected def fetchNavdata(sim: DroneSimulation[Emulator.Model]) =
+    Await.result(sim.execMethod(_.navdataDemo), sim.defaultTimeout.duration)
+
   def navdataDemoReaderProps(sim: DroneSimulation[Emulator.Model]) =
     FeedReader.generic[NavdataDemoFeed.type, EmulatorFeedChannelStub](NavdataDemoFeed,
-      _ => Some(Await.result(sim.execMethod(_.navdataDemo), sim.defaultTimeout.duration)) //Array[Byte] => Option[NavdataDemoFeed.Data]
+      _ => Some(fetchNavdata(sim)) //Array[Byte] => Option[NavdataDemoFeed.Data]
     )
 
   def controllerProps(simulator: DroneSimulation[Model],

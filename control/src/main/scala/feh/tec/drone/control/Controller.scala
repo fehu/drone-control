@@ -21,6 +21,15 @@ trait DataFeed{
 //  def parseData: Array[Byte] => Data
 }
 
+/** For abstracting feed descriptions
+ * overrides equals, so that children match
+ */
+protected[drone] trait AbstractDataFeed[A <: AbstractDataFeed[A]] extends DataFeed{
+  self: A =>
+
+  override def equals(obj: scala.Any) = obj.isInstanceOf[A]
+}
+
 /*sealed trait DataFeedRef[Data]{
   def buildData: PartialFunction[DataFeed, Data]
   def toList: List[DataFeed]

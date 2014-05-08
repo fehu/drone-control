@@ -23,13 +23,13 @@ trait NavdataDemoPoseEstimator extends PoseEstimator[NavdataDemo]{
   def lastPosition: Environment#Coordinate
 }
 
-trait AbstractPoseEstimationFeed extends DataFeed{
+trait PoseEstimationFeed extends AbstractDataFeed[PoseEstimationFeed]{
   type Data = Pose
   def dataTag = ru.typeTag[Pose]
 }
 
 trait PoseNotifier[Nav <: NavigationData] extends PoseEstimator[Nav] with FeedNotifier{
-  type NotifyFeed <: AbstractPoseEstimationFeed
+  type NotifyFeed <: PoseEstimationFeed
 
   def forwarded(data: Nav) = notifyForwarder(estimatePose(data))
 }
@@ -98,7 +98,7 @@ trait ByMeanVelocityNavdataDemoPoseEstimator extends ByNavdataDemoDiffPoseEstima
   }
 }
 
-class ByMeanVelocityNavdataDemoPoseEstimationFeed extends AbstractPoseEstimationFeed{ def name = "ByMeanVelocityNavdataDemoPoseEstimation" }
+class ByMeanVelocityNavdataDemoPoseEstimationFeed extends PoseEstimationFeed{ def name = "ByMeanVelocityNavdataDemoPoseEstimation" }
 object ByMeanVelocityNavdataDemoPoseEstimationFeed extends ByMeanVelocityNavdataDemoPoseEstimationFeed{
   def tag = ru.typeTag[ByMeanVelocityNavdataDemoPoseEstimationFeed]
 }
@@ -114,9 +114,8 @@ object ByMeanVelocityNavdataDemoPoseEstimator{
     type NotifyFeed = ByMeanVelocityNavdataDemoPoseEstimationFeed
     def forwarder = forwarderRef.get
 
-    val NavdataDemoFeedMatch = new BuildFeedMatcher(navdataFeed)
     def buildData = {
-      case NavdataDemoFeedMatch(data) => data
+      case (NavdataDemoFeed, Some(data: NavdataDemoFeed#Data)) => data
     }
 
     var on_? = false

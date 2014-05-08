@@ -61,7 +61,7 @@ global uav_navdata server
     
     while ~stop
         res = char(server.execNext);                                           %%% server exec
-        Log(['\t\t\t\t\tcheckForNavdata-server.execNext: ' res], '-debug')
+%         Log(['\t\t\t\t\tcheckForNavdata-server.execNext: ' res], '-debug')
         if uav_navdata.read == 0
             Log('new navdata', uav_navdata)
             stop = 1;

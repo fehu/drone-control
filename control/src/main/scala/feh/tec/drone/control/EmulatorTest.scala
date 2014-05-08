@@ -10,7 +10,7 @@ import scala.concurrent.ExecutionContext
 
 
 object EmulatorTest {
-  val readFreq: FiniteDuration = 10 millis span
+  val readFreq: FiniteDuration = 30 millis span
 
   class Core(implicit actorSys: ActorSystem) extends CoreBase
     with NavigationCore with MatlabControlCore with MatlabEmulationCore with CoreSequentialStartImpl
@@ -20,7 +20,7 @@ object EmulatorTest {
 
     def controllerProps = Emulator.controllerProps(emulationSim, emulationConfig.simStartTimeout)
 
-    def forwarderProps = DataForwarder.props(new EmulatorFeedChannelStub, lifetimeController, _ => None,
+    def forwarderProps = DataForwarder.props(new EmulatorFeedChannelStub, lifetimeController, _ => Some(null),
       aref => feedReaders, feedNotifiers, readFreq)(actorSys)
 
     def serviceExecContext = asys.dispatcher
@@ -33,7 +33,7 @@ object EmulatorTest {
 
     lazy val controlMatlab = new MatlabSimClient(asys.actorSelection(server.DynControl.path))
     lazy val controlConfig = SimConfig(
-      defaultTimeout = 1 second,
+      defaultTimeout = 30 millis,
       simStartTimeout = 30 seconds,
       simStopTimeout =  100 millis,
       execContext = asys.dispatcher)
@@ -41,7 +41,7 @@ object EmulatorTest {
     lazy val emulationMatlab = new MatlabSimClient(asys.actorSelection(server.DroneEmul.path))
     lazy val emulationModel = new DroneModel
     lazy val emulationConfig = SimConfig(
-      defaultTimeout = 20 millis,
+      defaultTimeout = 30 millis,
       simStartTimeout = 30 seconds,
       simStopTimeout =  100 millis,
       execContext = asys.dispatcher

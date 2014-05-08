@@ -17,8 +17,8 @@ function [sys,x0,str,ts] = update_navdata_demo(t,x,u,flag) % dx, dy, dz, droll, 
       case 3
         % the roll/pitch/yaw rates in the body frame [rad/s]
         navdata.roll = u(8);
-        navdata.dpitch = u(9);
-        navdata.dyaw = u(10);
+        navdata.pitch = u(9);
+        navdata.yaw = u(10);
         
         navdata.altitude = u(7);
         

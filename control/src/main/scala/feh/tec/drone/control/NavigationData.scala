@@ -66,7 +66,7 @@ object ControlState{
  */
 }
 
-trait NavdataDemoFeed extends DataFeed{
+trait NavdataDemoFeed extends AbstractDataFeed[NavdataDemoFeed]{
   type Data = NavdataDemo
 }
 
