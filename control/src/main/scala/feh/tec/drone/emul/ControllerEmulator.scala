@@ -50,8 +50,8 @@ class ControllerEmulator(val simulator: DroneSimulation[Emulator.Model],
       log.info("ControllerEmulator: received move command: " + m)
       simulator.setParam(_.roll, roll)
       simulator.setParam(_.pitch, pitch)
-      simulator.setParam(_.yaw, yaw.d) // todo
-      simulator.setParam(_.gaz, gaz.d)
+      simulator.setParam(_.yaw, yaw) // todo
+      simulator.setParam(_.gaz, gaz)
   }
 }
 

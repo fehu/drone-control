@@ -129,8 +129,8 @@ object QuadModel{
   }
 
   class Drone extends Model("quadrotor_emul", "Quadrotor plot/Plotter", dir = /){
-    lazy val roll = Param.unit("roll") // why unit ??
-    lazy val pitch = Param.unit("pitch")
+    lazy val roll = Param.double("roll") // why unit ??
+    lazy val pitch = Param.double("pitch")
     lazy val yaw = Param.double("yaw")
 
     lazy val gaz = Param.double("gaz")

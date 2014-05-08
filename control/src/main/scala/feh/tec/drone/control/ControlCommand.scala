@@ -21,10 +21,15 @@ package object DroneApiCommands{
    * @param yaw drone angular speed
    */
   case class Move(ﬂag: MoveFlag,
-                  roll: InUnitInterval,
-                  pitch: InUnitInterval,
-                  yaw: InUnitInterval,
-                  gaz: InUnitInterval) extends ControlCommand
+                  roll: Double,
+                  pitch: Double,
+                  yaw: Double,
+                  gaz: Double
+//                  roll: InUnitInterval,
+//                  pitch: InUnitInterval,
+//                  yaw: InUnitInterval,
+//                  gaz: InUnitInterval
+                   ) extends ControlCommand
 
   case class MoveFlag(absoluteControl: Boolean,
                       combinedYaw: Boolean,
