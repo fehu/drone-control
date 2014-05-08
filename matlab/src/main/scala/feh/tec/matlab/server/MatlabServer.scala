@@ -3,7 +3,7 @@ package feh.tec.matlab.server
 import akka.actor._
 import com.mathworks.jmi.Matlab
 import feh.util._
-import akka.event.Logging
+import akka.event.{LoggingAdapter, Logging}
 import java.util.UUID
 import scala.collection.mutable
 import akka.actor.ActorDSL._
@@ -11,8 +11,7 @@ import akka.pattern.ask
 import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.Some
-import akka.remote.RemoteScope
-import feh.tec.matlab.server.MatlabQueueServer.SimStarted
+import feh.tec.matlab.server.MatlabQueueServer.{SimStopped, SimStarted}
 import feh.tec.matlab.server.MatlabAsyncServer.MatRequest
 
 trait MatlabServer{
@@ -101,45 +100,50 @@ object MatlabAsyncServer{
   * Is used in a simulink block callback to allow access to matlab thread
   */
 class MatlabQueueServer(name: String)(implicit asystem: ActorSystem) extends MatlabAsyncServer(name){
-  override def serverActorProps = Props(classOf[MatlabQueueServer.ServerActor], shutdown.lifted, queue.put _, queue.clear _)
+  override def serverActorProps = Props(classOf[MatlabQueueServer.ServerActor], shutdown.lifted, queue.list().lifted, queue.queueManager)
 
   object queue{
+    import MatlabQueueServer.Queue._
+    val log = Logging(asystem, this.getClass)
 
-    case class Put(ex: Lifted[Any])
-    case object Next{
-      implicit def nextToOpt(next: Next): Option[Lifted[Any]] = next.opt
-    }
-    case class Next(opt: Option[Lifted[Any]])
-
-    case object Clear
-
-    case object List
-
-    val queueManager = actor("AQ")(new Act {
+    val queueManager = actor("matlab-queue-manager")(new Act {
       val queue = mutable.Queue.empty[Lifted[Any]]
 
+      log.info("queueManager started")
+
       become{
-        case Put(x) => queue += x
-        case Next => sender ! Next(if(queue.nonEmpty) Some(queue.dequeue()) else None)
+        case Put(x) =>
+          log.debug("put to queue")
+          queue += x
+        case Next =>
+//          log.debug("Next requested: " + queue)
+          sender ! Next(
+            if(queue.nonEmpty) {
+              log.debug("dequeued")
+              Some(queue.dequeue())
+            }
+            else None
+        )
         case Clear => queue.clear()
         case List => sender ! queue.toList
+        case SimStopped => stopped = true
+        case SimStarted => stopped = false
       }
     })(implicitly, asystem)
 
 
-    def put(ex: Lifted[Any]) = queueManager ! Put(ex)
     def next() = Await.result((queueManager ? Next)(10 millis).mapTo[Next], 10 millis)
-
-    def list() = Await.result((queueManager ? List)(10 millis).mapTo[List[Lifted[Any]]], 10 millis)
-
-    def clear() = queueManager ! Clear
+    def list() = Await.result((queueManager ? List)(50 millis).mapTo[List[Lifted[Any]]], 50 millis)
   }
 
-  def execNext() = queue.next().foreach(f =>{
+  private var stopped = false
+
+  def execNext() = queue.next().map(f =>{
     asystem.log.debug("Executing next")
     f()
     asystem.log.debug("Executed next")
-  })
+    "executed statement               =================================================================================="
+  }) getOrElse (if(stopped) "stopped" else "queue was empty")
 
   /** Notifies the server that a simulation has started (startFcn hook)
    */
@@ -160,6 +164,18 @@ object RemoteMatlabQueueServer{
 */
 
 object MatlabQueueServer{
+  object Queue{
+
+    case class Put(ex: Lifted[Any])
+    case object Next{
+      implicit def nextToOpt(next: Next): Option[Lifted[Any]] = next.opt
+    }
+    case class Next(opt: Option[Lifted[Any]])
+
+    case object Clear
+
+    case object List
+  }
 
   case class StartSim(simName: String, execLoopBlock: String) extends MatRequest
   case object StopSim extends MatRequest
@@ -174,7 +190,7 @@ object MatlabQueueServer{
   case object SubscribeErrors
   case object UnsubscribeErrors
 
-  class ServerActor(shutdown: () => Unit, putToQueue: Lifted[Any] => Unit, clearQueue: () => Unit)
+  class ServerActor(shutdown: () => Unit, listQueue: () => List[Lifted[Any]], queueManager: ActorRef)
     extends MatlabAsyncServer.ServerActor(shutdown)
   {
 
@@ -197,9 +213,13 @@ object MatlabQueueServer{
       Matlab.mtFeval("setSimOnStart", Array(name, block), 0)
       Matlab.mtFeval("sim", Array(name), 1)
     }
+
     def stopSim(name: String) = {
       log.info(s"stopping simulation $name")
-      Matlab.mtFeval("set_param", Array(name, "SimulationCommand", "stop"), 0)
+      withinMatlabThread(
+        UUID.randomUUID(),
+        Matlab.mtFeval("set_param", Array(name, "SimulationCommand", "stop"), 0)
+      )(StopSim, sender.path)
 //      Matlab.mtFeval("close_system", Array(name), 0)
     }
 
@@ -212,6 +232,10 @@ object MatlabQueueServer{
         simStartRequest = None
     }
 
+
+    def putToQueue(f: Lifted[Any]) = queueManager ! Queue.Put(f)
+    def clearQueue() = queueManager ! Queue.Clear
+
     override def receive = super.receive orElse {
       case SubscribeErrors =>
         val path = sender.path
@@ -223,6 +247,7 @@ object MatlabQueueServer{
         log.info("Start Sim")
         val s = sender()
         simStartRequest = Some(s)
+        queueManager ! SimStarted
         guardRequestAndExec(
           try startSim(name, block)
           catch {
@@ -238,28 +263,35 @@ object MatlabQueueServer{
           {
             log.info("notifying simulation finished")
             self ! SimStopped
+            val l = listQueue()
+            log.debug("queue: " + l)
             clearQueue()
           },
           req
         )
-        simName = Some(name)
+        simStarting(name)
       case StopSim if inSim =>
         log.info("Stop Sim")
-        val name = simName.get
 //        simName = None
-        stopSim(name)
+        simName.foreach(stopSim)
       case SimStarted =>
         log.info("Sim Started, requester = " + simStartRequest)
         respondToSimRequester(SimStarted)
-//        sys.error("AAAARG")
-      case SimStopped =>
-        log.info("Sim Stopped")
-        simName = None
+      case SimStopped => simStopped()
       case InSim => sender ! inSim
       case SimName => sender ! simName
     }
-
-    var simName: Option[String] = None
+    
+    private var simName: Option[String] = None
+    def simStarting(name: String) = {
+      log.debug("sim name set: " + name)
+      simName = Some(name)
+    }
+    def simStopped() = {
+      log.info("Sim Stopped: " + simName.get)
+      simName = None
+      queueManager ! SimStopped
+    }
     def inSim = simName.isDefined
 
     override def withinMatlabThread(id: UUID, f: => Any)(request: MatRequest, requester: ActorPath) ={

@@ -38,25 +38,66 @@ global uav_control uav_navdata
 
 end
 
+function waitForNavdata1()    
+    t = timer('TimerFcn',@foo,...
+        'ExecutionMode', 'fixedSpacing', ...
+        'Period', 0.01, 'TasksToExecute', 1e12);
+    
+    start(t)
+    Log('started timer', t)
+    wait(t)
+    Log('finished waiting timer')
+end
+
+function foo(a, b)
+    Log('foo', a, b)
+end
+
 function waitForNavdata()    
+global uav_navdata server
+    Log('waiting for navdata')
+    
+    stop = 0;
+    
+    while ~stop
+        res = char(server.execNext);                                           %%% server exec
+        Log(['\t\t\t\t\tcheckForNavdata-server.execNext: ' res], '-debug')
+        if uav_navdata.read == 0
+            Log('new navdata', uav_navdata)
+            stop = 1;
+        elseif strcmp(res, 'stopped')
+            Log('timer stopped')
+            stop = 1;
+        end 
+    end
+end
+
+
+function waitForNavdataWithTimer()    
 global timer_     
     timer_ = timer('TimerFcn',@checkForNavdata,...
         'ExecutionMode', 'fixedSpacing', ...
-        'Period', 0.05, ...
+        'Period', 0.01, 'BusyMode', 'error',...
         'TasksToExecute', 1e12); % can't wait for infinite timer
 
     start(timer_)
+    Log('started timer', timer_)
     wait(timer_)
+    Log('finished waiting timer')
 end
 
 function checkForNavdata(x, y)    
 global uav_navdata timer_ server
-    
-    server.execNext;                                                            %%% server exec
+    Log('checkForNavdata', '-debug')
+    res = 'aa'; %char(server.execNext);                                           %%% server exec
+    Log(['\t\t\t\t\tcheckForNavdata-server.execNext: ' res], '-debug')
     
     if uav_navdata.read == 0
         Log('new navdata', uav_navdata)
+        stop(timer_)
         
+    elseif strcmp(res, 'stopped')
+        Log('timer stopped')
         stop(timer_)
     end
 end

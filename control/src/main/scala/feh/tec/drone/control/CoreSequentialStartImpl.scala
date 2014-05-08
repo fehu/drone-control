@@ -15,7 +15,7 @@ import scala.util.Failure
 import feh.tec.drone.control.LifetimeController.StartupException
 import scala.util.Success
 import feh.tec.drone.control.LifetimeController.Stage
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{Future, ExecutionContext}
 
 /**
  * loses generality on control, for usage with matlab simulation and control
@@ -47,11 +47,11 @@ trait CoreSequentialStartImpl extends Core{
     implicit def ec = serviceExecContext
     implicit def t = controlConfig.simStopTimeout
 
-    tacticalPlanner ? Control.Stop flatMap { _ =>
-      controller ? Control.Stop
-    } flatMap { _ =>
+    Future.sequence(Seq(
+      tacticalPlanner ? Control.Stop,
+      controller ? Control.Stop,
       forwarder ? Control.Stop
-    } onComplete(_.get)
+    )).onComplete(_.get)
   }
 }
 
@@ -96,6 +96,10 @@ object CoreSequentialStartImpl{
       case err: MatlabAsyncServer.Error if state == State.StartingUp =>
         log.error("on startup: " + err)
         errors :+= err
+      case ex@RunException(_, _, thr) =>
+        log.error(ex.toString)
+        thr.map(log.error(_, "RunException"))
+      case ex: LifetimeException => log.error(ex.toString)
       case NextStage if state == State.StartingUp =>
         if(errorsHappened) {
           val errMsg = StartupException(errors, currentStage.get)

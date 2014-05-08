@@ -4,6 +4,8 @@ import akka.actor.{ActorPath, ActorSelection, ActorSystem}
 import com.typesafe.config.{ConfigValueFactory, Config, ConfigFactory}
 import feh.tec.matlab.Server
 import feh.tec.matlab.server.Default.ConnectionSetting
+import feh.util._
+import feh.tec.util.{ConfigOverride, ToFileLogger}
 
 //object ServerDefaults {
 ////  def serverName = sys.props.get("matlab.server.name") getOrElse "default"
@@ -16,16 +18,24 @@ import feh.tec.matlab.server.Default.ConnectionSetting
 
 object Default{
   protected implicit class SetWrapper(conf: Config){
-    def set(host: String, port: Int) = conf
+    def set(host: String, port: Int, logFile: String = null) = conf
       .withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(host))
       .withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(port))
+      .pipe{
+        c => Option(logFile)
+          .map(path => c.withValue(ToFileLogger.configPath, ConfigValueFactory.fromAnyRef(path)))
+          .getOrElse(c)
+      }
 
     def actor(path: String) = conf.getString(path + ".actor")
     def system(path: String) = conf.getString(path + ".system")
     def host(path: String) = conf.getString(path + ".host")
     def port(path: String) = conf.getInt(path + ".port")
+    def logFile(path: String) =
+      if(conf.hasPath(path + ".log-file")) Some(conf.getString(path + ".log-file"))
+      else None
 
-    def setFrom(path: String) = set(host(path), port(path))
+    def setFrom(path: String) = set(host(path), port(path), logFile(path).orNull)
 
     def toUri(path: String) = s"akka.tcp://${system(path)}@${host(path)}:${port(path)}/user/${actor(path)}"
 
@@ -47,6 +57,7 @@ object Default{
 
   class ConnectionSetting(prefix: String){
     val conf = defaultConfig.setFrom(prefix)
+    ConfigOverride.config = Some(conf)
 
     implicit lazy val system = ActorSystem.create(conf.system(prefix), conf)
 

@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.61"
+    ComputedModelVersion    "1.62"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -23,16 +23,17 @@ Model {
   MaxMDLFileLineLength	  120
   InitFcn		  "% load parameters of the default quadrotor\ndisp('Quadrotor parameters loaded by InitFcn')\nmdl_quadcopt"
   "er\n"
-  StartFcn		  "startFunc('quadrotor_emul/Quadrotor plot/Plotter')"
+  StartFcn		  "h = add_exec_event_listener('quadrotor_emul/Quadrotor plot/Plotter', 'PostOutputs', @simExec); startFun"
+  "c('quadrotor_emul/Quadrotor plot/Plotter'); "
   Created		  "Sat Mar 20 12:13:00 2010"
   Creator		  "corkep"
   UpdateHistory		  "UpdateHistoryNever"
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "fehu"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Tue May 06 07:14:29 2014"
-  RTWModifiedTimeStamp	  321261198
-  ModelVersionFormat	  "1.%<AutoIncrement:61>"
+  LastModifiedDate	  "Wed May 07 22:09:05 2014"
+  RTWModifiedTimeStamp	  321401217
+  ModelVersionFormat	  "1.%<AutoIncrement:62>"
   ConfigurationManager	  "None"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off

@@ -150,8 +150,10 @@ object DataForwarder{
         log.info(s"subscribed: " + sender)
         if(!_listeners.contains(sender)) _listeners += sender -> Set()
         _listeners <<=(sender, _ + feed)
+        log.debug(s"_listeners = " + _listeners)
       case Unsubscribe(feed) /*if sender != ActorRef.noSender*/ =>
         log.info(s"unsubscribed: " + sender)
+        log.debug(s"_listeners = " + _listeners)
         _listeners <<=(sender, _ - feed)
       // forwarding notifiers messages
       case f@Forward(feed, data) if extraFeeds.keySet contains feed =>
