@@ -12,7 +12,7 @@ object  Build extends sbt.Build {
 
   val ScalaVersion = "2.10.3"
   val Version = "0.2"
-  val MatlabPath = sys.env.getOrElse("MATLAB_HOME", sys.error("set MATLAB_HOME environment variable"))
+//  val MatlabPath = sys.env.getOrElse("MATLAB_HOME", sys.error("set MATLAB_HOME environment variable"))
 
   import Resolvers._
   import Dependencies._
@@ -155,43 +155,47 @@ object  Build extends sbt.Build {
       name := "drone-root"
     }
   ).settings(ideaExcludeFolders := ".idea" :: ".idea_modules" :: Nil)
-   .aggregate(control, matlab)
+   .aggregate(test)
 
-  lazy val control = Project(
-    id = "drone-control",
-    base = file("control"),
-    settings = buildSettings ++ Seq(
-//      resolvers ++= Seq(Release.scalaNLP, Snapshot.scalaTools),
-      libraryDependencies ++= Seq(akka.actor, feh.util /*scalala*/),
-      initialCommands in console :=
-        """
-          |import akka.actor.ActorSystem
-          |import feh.tec.drone.control.{EmulatorTest, TacticalPlanner}
-          |import scala.concurrent.duration._
-          |implicit val asys = ActorSystem.create()
-          |lazy val core = new EmulatorTest.Core
-          |def sendWaypoint(c: (Double, Double, Double)) = core.tacticalPlanner ! TacticalPlanner.SetWaypoints(c)
-        """.stripMargin
-    ) ++ Bundle.breeze
-  ) dependsOn matlab
+//  lazy val control = Project(
+//    id = "drone-control",
+//    base = file("control"),
+//    settings = buildSettings ++ Seq(
+////      resolvers ++= Seq(Release.scalaNLP, Snapshot.scalaTools),
+//      libraryDependencies ++= Seq(akka.actor, feh.util /*scalala*/),
+//      initialCommands in console :=
+//        """
+//          |import akka.actor.ActorSystem
+//          |import feh.tec.drone.control.{EmulatorTest, TacticalPlanner}
+//          |import scala.concurrent.duration._
+//          |implicit val asys = ActorSystem.create()
+//          |lazy val core = new EmulatorTest.Core
+//          |def sendWaypoint(c: (Double, Double, Double)) = core.tacticalPlanner ! TacticalPlanner.SetWaypoints(c)
+//        """.stripMargin
+//    ) ++ Bundle.breeze
+//  ) dependsOn matlab
+//
+//  lazy val matlab = Project(
+//    id = "matlab-connection",
+//    base = file("matlab"),
+//    settings = buildSettings ++ serverBuildingSettings ++ Seq(
+//      libraryDependencies ++= Seq(feh.util, akka.actor, akka.remote),
+//      unmanagedBase := file(  MatlabPath + "/java/jar"),
+//      initialCommands in console :=
+//        """
+//          |import scala.concurrent.duration._
+//          |import feh.tec.matlab.server.Default.system._
+//          |import feh.tec.matlab._
+//          |val cl = new MatlabSimClient(actorSelection(server.Default.path))
+//          |val sim = new DroneSimulation(QuadModel.Drone, cl, 10 millis)
+//        """.stripMargin
+//    )
+//  )
 
-  lazy val matlab = Project(
-    id = "matlab-connection",
-    base = file("matlab"),
-    settings = buildSettings ++ serverBuildingSettings ++ Seq(
-      libraryDependencies ++= Seq(feh.util, akka.actor, akka.remote),
-      unmanagedBase := file(MatlabPath + "/java/jar"),
-      initialCommands in console :=
-        """
-          |import scala.concurrent.duration._
-          |import feh.tec.matlab.server.Default.system._
-          |import feh.tec.matlab._
-          |val cl = new MatlabSimClient(actorSelection(server.Default.path))
-          |val sim = new DroneSimulation(QuadModel.Drone, cl, 10 millis)
-        """.stripMargin
-    )
+  lazy val test = Project(
+    id = "test",
+    base = file("test"),
+    settings = buildSettings ++ Bundle.breeze
   )
-
-
 
 }
