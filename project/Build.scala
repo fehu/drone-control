@@ -100,11 +100,12 @@ object  Build extends sbt.Build {
     }
 
     object Bundle{
+      lazy val version = "0.7"
       lazy val breeze = Seq(
         resolvers ++= Resolvers.sonatype,
         libraryDependencies ++= Seq(
-          "org.scalanlp" % "breeze_2.10" % "0.7",
-          "org.scalanlp" % "breeze-natives_2.10" % "0.7"
+          "org.scalanlp" % "breeze_2.10" % version,
+          "org.scalanlp" % "breeze-natives_2.10" % version
         )
       )
     }

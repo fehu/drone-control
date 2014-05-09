@@ -27,7 +27,7 @@ trait DataFeed{
 protected[drone] trait AbstractDataFeed[A <: AbstractDataFeed[A]] extends DataFeed{
   self: A =>
 
-  override def equals(obj: scala.Any) = obj.isInstanceOf[A]
+  override def equals(obj: scala.Any) = obj.isInstanceOf[A] // todo
 }
 
 /*sealed trait DataFeedRef[Data]{
