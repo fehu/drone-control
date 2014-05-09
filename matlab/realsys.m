@@ -22,7 +22,7 @@ global uav_control uav_navdata
         uav_control.yaw = u(3);
         uav_control.gaz = u(4);
         
-        waitForNavdata();
+%         waitForNavdata();
         
         uav_navdata.read = 1;
         sys = [uav_navdata.x, uav_navdata.y, uav_navdata.z, ...

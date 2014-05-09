@@ -2,6 +2,7 @@ package feh.tec.drone.control
 
 import akka.actor._
 import scala.reflect.runtime.universe._
+import scala.reflect.ClassTag
 
 /**
  * Establishes connection,
@@ -27,7 +28,9 @@ trait DataFeed{
 protected[drone] trait AbstractDataFeed[A <: AbstractDataFeed[A]] extends DataFeed{
   self: A =>
 
-  override def equals(obj: scala.Any) = obj.isInstanceOf[A] // todo
+  val feedClass: Class[A]
+
+  override def equals(obj: scala.Any) = feedClass.isAssignableFrom(obj.getClass)
 }
 
 /*sealed trait DataFeedRef[Data]{

@@ -8,7 +8,7 @@ import scala.concurrent.duration.FiniteDuration
 import feh.util._
 import feh.tec.drone.control.FeedReader.ReadRawAndForward
 import feh.tec.drone.control.DataForwarder.Forward
-import akka.event.Logging
+import akka.event.{LoggingAdapter, Logging}
 import akka.pattern.ask
 import feh.tec.drone.control.LifetimeController.LifetimeException
 
@@ -160,6 +160,8 @@ object DataForwarder{
         log.debug(s"forwarding $feed data: $data")
         listenersFor(feed) foreach (_ ! f)
       // forwarding lifetime exceptions
+      case f@Forward(feed, data) =>
+        log.warning(s"forward request for unknown $feed, data: $data")
       case lerr: LifetimeException =>
         log.debug(s"forwarding error:  $lerr")
         lifetimeController ! lerr
@@ -188,7 +190,7 @@ object FeedReader{
     FeedReaderProps(Props(classOf[GenericFeedReader[Feed, Ch]], feed, read), "GenericFeedReader-" + feed.name)
 
   class GenericFeedReader[Feed <: DataFeed, Ch <: IOCommandChannel](val feed: Feed,
-                                                                    readRaw: Array[Byte] => Feed#Data)
+                                                                    readRaw: Array[Byte] => Option[Feed#Data])
     extends FeedReader
   {
     protected val log = Logging(context.system, this)
@@ -196,7 +198,7 @@ object FeedReader{
     /** reads data from raw bytes received from the drone
       */
     def read(raw: Array[Byte]) = {
-      val data = readRaw(raw).asInstanceOf[feed.Data]
+      val data = readRaw(raw).get.asInstanceOf[feed.Data]
       log.info(s"Data read from feed $feed: $data")
       data
     }
@@ -210,12 +212,17 @@ object FeedReader{
 trait FeedNotifier extends Actor{
   type NotifyFeed <: DataFeed
 
+  protected def log: LoggingAdapter
+
   def forwarder: ActorRef
   def notifyFeed: NotifyFeed
 
   def on_? : Boolean
 
-  def notifyForwarder(data: NotifyFeed#Data) = if(on_?) forwarder ! Forward[NotifyFeed](notifyFeed, data)
+  def notifyForwarder(data: NotifyFeed#Data) = {
+    log.debug(s"notifying forwarder, (on=${on_?}, forwarder=$forwarder): $data")
+    if(on_?) forwarder ! Forward[NotifyFeed](notifyFeed, data)
+  }
 
 }
 

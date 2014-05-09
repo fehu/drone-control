@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.62"
+    ComputedModelVersion    "1.67"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -31,9 +31,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "fehu"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Wed May 07 22:09:05 2014"
-  RTWModifiedTimeStamp	  321401217
-  ModelVersionFormat	  "1.%<AutoIncrement:62>"
+  LastModifiedDate	  "Thu May 08 21:06:39 2014"
+  RTWModifiedTimeStamp	  321483961
+  ModelVersionFormat	  "1.%<AutoIncrement:67>"
   ConfigurationManager	  "None"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -119,7 +119,7 @@ Model {
 	  StartTime		  "0.0"
 	  StopTime		  "inf"
 	  AbsTol		  "auto"
-	  FixedStep		  "auto"
+	  FixedStep		  "0.05"
 	  InitialStep		  "auto"
 	  MaxNumMinSteps	  "-1"
 	  MaxOrder		  5
@@ -135,8 +135,8 @@ Model {
 	  SolverMode		  "Auto"
 	  EnableConcurrentExecution off
 	  ConcurrentTasks	  off
-	  Solver		  "ode45"
-	  SolverName		  "ode45"
+	  Solver		  "ode3"
+	  SolverName		  "ode3"
 	  SolverJacobianMethodControl "auto"
 	  ShapePreserveControl	  "DisableAll"
 	  ZeroCrossControl	  "UseLocalSettings"
@@ -661,8 +661,8 @@ Model {
 	PropName		"Components"
       }
       Name		      "Configuration"
-      CurrentDlgPage	      "Code Generation"
-      ConfigPrmDlgPosition     [ 28, 109, 1014, 1045 ] 
+      CurrentDlgPage	      "Solver"
+      ConfigPrmDlgPosition     [ 1920, 1, 2922, 1045 ] 
     }
     PropName		    "ConfigurationSets"
   }
@@ -836,6 +836,12 @@ Model {
       ZOrder		      -22
       DropShadow	      on
       LibraryVersion	      "1.57"
+      LinkData {
+	BlockName		"Plotter"
+	DialogParameters {
+	  Parameters		  "[20,30], 1, 1"
+	}
+      }
       SourceBlock	      "roblocks/Robot Graphics/Quadrotor plot"
       SourceType	      ""
       x			      "0"
@@ -868,7 +874,7 @@ Model {
       SID		      "146"
       Position		      [25, 295, 55, 325]
       ZOrder		      -4
-      Value		      "0.0"
+      Value		      "0"
     }
     Block {
       BlockType		      Constant
@@ -876,7 +882,7 @@ Model {
       SID		      "144"
       Position		      [25, 70, 55, 100]
       ZOrder		      -4
-      Value		      "0.0"
+      Value		      "0"
     }
     Block {
       BlockType		      Constant
@@ -884,7 +890,7 @@ Model {
       SID		      "145"
       Position		      [25, 145, 55, 175]
       ZOrder		      -4
-      Value		      "0.0"
+      Value		      "0"
     }
     Block {
       BlockType		      Constant
@@ -892,7 +898,7 @@ Model {
       SID		      "118"
       Position		      [25, 220, 55, 250]
       ZOrder		      -4
-      Value		      "0.0"
+      Value		      "0"
     }
     Line {
       SrcBlock		      "Control Mixer"

@@ -63,11 +63,17 @@ trait TacticalPlanner extends Actor{
   protected val NavdataMatch = new BuildFeedMatcher(navdataFeed)
   protected val PoseEstimationMatch = new BuildFeedMatcher(poseEstimationFeed)
 
+  protected val log = Logging(this)
+
   def receive = {
-    case NavdataMatch(data) => navData = data
+    case NavdataMatch(data) =>
+      log.debug("Navdata Match: " + data)
+      navData = data
     case control: Control.Message => msgControl(control)
     case wp: WaypointsControl => msgWaypoints(wp)
-    case PoseEstimationMatch(pose) => msgPoseEstimated(pose)
+    case PoseEstimationMatch(pose) =>
+      log.debug("Pose Estimation Match: " + pose)
+      msgPoseEstimated(pose)
   }
 }
 
@@ -90,8 +96,6 @@ trait MatlabDynControlTacticalPlanner extends TacticalPlanner{
   implicit def execContext = simConf.execContext
 
   lazy val controlSim = new DroneSimulation[DynControl](new DynControl, matlab, simConf.defaultTimeout)
-
-  protected val log = Logging(context.system, this)
 
   def start() =
     controlSim.start(simConf.simStartTimeout) map { _ =>
@@ -130,10 +134,18 @@ trait MatlabDynControlTacticalPlanner extends TacticalPlanner{
     )
     execMethod(_.readControl) recoverWith{
       case ModelMethodException(`model`, _, "no new control data available") => Future { noControlDataAvailable }
-    }
+    } $$
+      (_.foreach(lastControl = _))
+
   }
 
-  def noControlDataAvailable: DynControl.Control = sys.error("noControlDataAvailable") // todo
+  private var lastControl: DynControl.Control = _
+
+  def noControlDataAvailable: DynControl.Control = Option(lastControl) map {
+    c =>
+      log.warning("no new control data available")
+      lastControl
+  } getOrElse (throw sys.error("no new control data available"))
 }
 
 class StraightLineTacticalPlanner(val env: Environment,

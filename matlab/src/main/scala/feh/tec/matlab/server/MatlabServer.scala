@@ -96,7 +96,7 @@ object MatlabAsyncServer{
 }
 
 
-/** Executes next queued statement at `execNext` call.
+/** Executes next/all queued statement at `execNext` call.
   * Is used in a simulink block callback to allow access to matlab thread
   */
 class MatlabQueueServer(name: String)(implicit asystem: ActorSystem) extends MatlabAsyncServer(name){
@@ -124,6 +124,7 @@ class MatlabQueueServer(name: String)(implicit asystem: ActorSystem) extends Mat
             }
             else None
         )
+        case All => sender ! All(queue.dequeueAll(_ => true))
         case Clear => queue.clear()
         case List => sender ! queue.toList
         case SimStopped => stopped = true
@@ -134,16 +135,36 @@ class MatlabQueueServer(name: String)(implicit asystem: ActorSystem) extends Mat
 
     def next() = Await.result((queueManager ? Next)(10 millis).mapTo[Next], 10 millis)
     def list() = Await.result((queueManager ? List)(50 millis).mapTo[List[Lifted[Any]]], 50 millis)
+    def all()  = Await.result((queueManager ? All)(50 millis).mapTo[All], 50 millis).expressions
   }
 
   private var stopped = false
 
-  def execNext() = queue.next().map(f =>{
+  def execLifted(f: Lifted[Any]) = {
     asystem.log.debug("Executing next")
     f()
     asystem.log.debug("Executed next")
+  }
+
+  def execNext() = queue.next() map execLifted map(_ =>
     "executed statement               =================================================================================="
-  }) getOrElse (if(stopped) "stopped" else "queue was empty")
+  ) getOrElse queueEmptyMsg
+
+  private def queueEmptyMsg = if(stopped) "stopped" else "queue was empty"
+
+  def execAll() = queue.all() |> {
+    all =>
+      if(all.isEmpty) queueEmptyMsg
+      else {
+        all map execLifted
+        s"executed ${all.size} statements               =================================================================================="
+      }
+  }
+
+  // temp
+  def startSim(name: String, block: String) = {
+    Matlab.mtFeval("startSim", Array(name, block), 1)
+  }
 
   /** Notifies the server that a simulation has started (startFcn hook)
    */
@@ -171,6 +192,10 @@ object MatlabQueueServer{
       implicit def nextToOpt(next: Next): Option[Lifted[Any]] = next.opt
     }
     case class Next(opt: Option[Lifted[Any]])
+
+    case object All
+
+    case class All(expressions: Seq[Lifted[Any]])
 
     case object Clear
 
@@ -207,12 +232,8 @@ object MatlabQueueServer{
       }
     }
 
-    def startSim(name: String, block: String) = {
-      Matlab.mtEval("if gcs, close_system(gcs), end")
-      Matlab.mtFeval("open_system", Array(name), 0)
-      Matlab.mtFeval("setSimOnStart", Array(name, block), 0)
-      Matlab.mtFeval("sim", Array(name), 1)
-    }
+    def startSim(name: String, block: String) = Matlab.mtFeval("startSim", Array(name, block), 1)
+
 
     def stopSim(name: String) = {
       log.info(s"stopping simulation $name")

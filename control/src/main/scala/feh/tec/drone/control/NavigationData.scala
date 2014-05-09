@@ -68,5 +68,6 @@ object ControlState{
 
 trait NavdataDemoFeed extends AbstractDataFeed[NavdataDemoFeed]{
   type Data = NavdataDemo
+  val feedClass = classOf[NavdataDemoFeed]
 }
 

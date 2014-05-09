@@ -12,7 +12,7 @@ import feh.tec.drone.control.ControlState.Default
 import Environment._
 
 object EmulatorTest {
-  val readFreq: FiniteDuration = 30 millis span
+  val readFreq: FiniteDuration = 100 millis span
 
   class Core(implicit actorSys: ActorSystem) extends CoreBase
     with NavigationCore with MatlabControlCore with MatlabEmulationCore with CoreSequentialStartImpl
@@ -35,7 +35,7 @@ object EmulatorTest {
 
     lazy val controlMatlab = new MatlabSimClient(asys.actorSelection(server.DynControl.path))
     lazy val controlConfig = SimConfig(
-      defaultTimeout = 30 millis,
+      defaultTimeout = 50 millis,
       simStartTimeout = 30 seconds,
       simStopTimeout =  100 millis,
       execContext = asys.dispatcher)
@@ -43,7 +43,7 @@ object EmulatorTest {
     lazy val emulationMatlab = new MatlabSimClient(asys.actorSelection(server.DroneEmul.path))
     lazy val emulationModel = new DroneModel
     lazy val emulationConfig = SimConfig(
-      defaultTimeout = 30 millis,
+      defaultTimeout = 50 millis,
       simStartTimeout = 30 seconds,
       simStopTimeout =  100 millis,
       execContext = asys.dispatcher

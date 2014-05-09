@@ -26,6 +26,7 @@ trait NavdataDemoPoseEstimator extends PoseEstimator[NavdataDemo]{
 trait PoseEstimationFeed extends AbstractDataFeed[PoseEstimationFeed]{
   type Data = Pose
   def dataTag = ru.typeTag[Pose]
+  val feedClass = classOf[PoseEstimationFeed]
 }
 
 trait PoseNotifier[Nav <: NavigationData] extends PoseEstimator[Nav] with FeedNotifier{
@@ -115,7 +116,8 @@ object ByMeanVelocityNavdataDemoPoseEstimator{
     def forwarder = forwarderRef.get
 
     def buildData = {
-      case (NavdataDemoFeed, Some(data: NavdataDemoFeed#Data)) => data
+      case (NavdataDemoFeed, Some(data: NavdataDemoFeed#Data))  => data
+      case (NavdataDemoFeed, data: NavdataDemoFeed#Data)        => data
     }
 
     var on_? = false
