@@ -199,7 +199,7 @@ object FeedReader{
       */
     def read(raw: Array[Byte]) = {
       val data = readRaw(raw).get.asInstanceOf[feed.Data]
-      log.info(s"Data read from feed $feed: $data")
+      log.debug(s"Data read from feed $feed: $data")
       data
     }
 

@@ -67,7 +67,7 @@ abstract class ByNavdataDemoDiffPoseEstimator(val feed: NavdataDemoFeed, envZero
     lastReceived = t
     lastData = data
     val pose = Pose(lastPosition, orientation(data))
-    log.info("Pose estimated: " + pose)
+    log.debug("Pose estimated: " + pose)
     pose
   }
 

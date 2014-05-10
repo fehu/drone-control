@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.61"
+    ComputedModelVersion    "1.63"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -34,9 +34,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "fehu"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Thu May 08 21:57:16 2014"
-  RTWModifiedTimeStamp	  321487025
-  ModelVersionFormat	  "1.%<AutoIncrement:61>"
+  LastModifiedDate	  "Fri May 09 19:05:06 2014"
+  RTWModifiedTimeStamp	  321563101
+  ModelVersionFormat	  "1.%<AutoIncrement:63>"
   ConfigurationManager	  "None"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -842,7 +842,7 @@ Model {
   }
   System {
     Name		    "quadrotor_control"
-    Location		    [1922, 254, 3150, 1007]
+    Location		    [2497, 134, 3725, 887]
     Open		    on
     ModelBrowserVisibility  off
     ModelBrowserWidth	    200
@@ -862,7 +862,7 @@ Model {
       Name		      "Bus\nCreator"
       SID		      "139"
       Ports		      [12, 1]
-      Position		      [1045, 22, 1050, 343]
+      Position		      [1145, 22, 1150, 343]
       ZOrder		      -5
       ShowName		      off
       Inputs		      "'X','Y','Z','yaw','pitch','roll','dx','dy','dz','dyaw','dpitch','droll'"
@@ -873,7 +873,7 @@ Model {
       Name		      "Bus\nSelector1"
       SID		      "1"
       Ports		      [1, 1]
-      Position		      [160, 66, 165, 104]
+      Position		      [260, 66, 265, 104]
       ZOrder		      -1
       ForegroundColor	      "orange"
       ShowName		      off
@@ -892,7 +892,7 @@ Model {
       Name		      "Bus\nSelector2"
       SID		      "2"
       Ports		      [1, 1]
-      Position		      [160, 116, 165, 154]
+      Position		      [260, 116, 265, 154]
       ZOrder		      -2
       ForegroundColor	      "orange"
       ShowName		      off
@@ -911,7 +911,7 @@ Model {
       Name		      "Bus\nSelector3"
       SID		      "3"
       Ports		      [1, 1]
-      Position		      [470, 151, 475, 189]
+      Position		      [570, 151, 575, 189]
       ZOrder		      -3
       ForegroundColor	      "blue"
       ShowName		      off
@@ -930,7 +930,7 @@ Model {
       Name		      "Bus\nSelector4"
       SID		      "4"
       Ports		      [1, 1]
-      Position		      [470, 201, 475, 239]
+      Position		      [570, 201, 575, 239]
       ZOrder		      -4
       ForegroundColor	      "blue"
       ShowName		      off
@@ -949,7 +949,7 @@ Model {
       Name		      "Bus\nSelector5"
       SID		      "5"
       Ports		      [1, 2]
-      Position		      [160, 303, 165, 372]
+      Position		      [260, 303, 265, 372]
       ZOrder		      -5
       ShowName		      off
       OutputSignals	      "yaw,dyaw"
@@ -971,7 +971,7 @@ Model {
       Name		      "Bus\nSelector6"
       SID		      "6"
       Ports		      [1, 2]
-      Position		      [165, 433, 170, 502]
+      Position		      [265, 433, 270, 502]
       ZOrder		      -6
       ForegroundColor	      "red"
       ShowName		      off
@@ -993,7 +993,7 @@ Model {
       BlockType		      Clock
       Name		      "Clock"
       SID		      "70"
-      Position		      [655, 389, 700, 411]
+      Position		      [755, 389, 800, 411]
       ZOrder		      -7
       BackgroundColor	      "yellow"
       ShowName		      off
@@ -1003,7 +1003,7 @@ Model {
       BlockType		      Gain
       Name		      "D_pr"
       SID		      "28"
-      Position		      [550, 205, 580, 235]
+      Position		      [650, 205, 680, 235]
       ZOrder		      -9
       ForegroundColor	      "blue"
       Gain		      ".1"
@@ -1015,7 +1015,7 @@ Model {
       BlockType		      Gain
       Name		      "D_xy"
       SID		      "29"
-      Position		      [220, 120, 250, 150]
+      Position		      [320, 120, 350, 150]
       ZOrder		      -10
       ForegroundColor	      "orange"
       Gain		      "2"
@@ -1027,7 +1027,7 @@ Model {
       BlockType		      Gain
       Name		      "D_yaw"
       SID		      "30"
-      Position		      [255, 340, 285, 370]
+      Position		      [355, 340, 385, 370]
       ZOrder		      -11
       ParamDataTypeStr	      "Inherit: Inherit via internal rule"
       OutDataTypeStr	      "Inherit: Inherit via internal rule"
@@ -1037,7 +1037,7 @@ Model {
       BlockType		      Gain
       Name		      "D_z"
       SID		      "31"
-      Position		      [255, 470, 285, 500]
+      Position		      [355, 470, 385, 500]
       ZOrder		      -12
       ForegroundColor	      "red"
       ParamDataTypeStr	      "Inherit: Inherit via internal rule"
@@ -1049,7 +1049,7 @@ Model {
       Name		      "Demux"
       SID		      "32"
       Ports		      [1, 2]
-      Position		      [700, 56, 705, 94]
+      Position		      [800, 56, 805, 94]
       ZOrder		      -13
       ForegroundColor	      "blue"
       ShowName		      off
@@ -1061,7 +1061,7 @@ Model {
       Name		      "Demux1"
       SID		      "140"
       Ports		      [1, 12]
-      Position		      [970, 42, 975, 323]
+      Position		      [1070, 42, 1075, 323]
       ZOrder		      -6
       BackgroundColor	      "black"
       ShowName		      off
@@ -1144,7 +1144,7 @@ Model {
       Name		      "Mux"
       SID		      "71"
       Ports		      [2, 1]
-      Position		      [875, 405, 880, 465]
+      Position		      [975, 405, 980, 465]
       ZOrder		      -14
       ShowName		      off
       Inputs		      "2"
@@ -1155,7 +1155,7 @@ Model {
       Name		      "Mux1"
       SID		      "35"
       Ports		      [2, 1]
-      Position		      [135, 16, 140, 54]
+      Position		      [235, 16, 240, 54]
       ZOrder		      -15
       ShowName		      off
       Inputs		      "2"
@@ -1173,7 +1173,7 @@ Model {
       Name		      "Mux2"
       SID		      "138"
       Ports		      [4, 1]
-      Position		      [810, 151, 815, 189]
+      Position		      [910, 151, 915, 189]
       ZOrder		      -12
       ShowName		      off
       DisplayOption	      "bar"
@@ -1182,7 +1182,7 @@ Model {
       BlockType		      Gain
       Name		      "P_pr"
       SID		      "36"
-      Position		      [640, 60, 670, 90]
+      Position		      [740, 60, 770, 90]
       ZOrder		      -16
       ForegroundColor	      "blue"
       Gain		      "-400"
@@ -1194,7 +1194,7 @@ Model {
       BlockType		      Gain
       Name		      "P_xy"
       SID		      "37"
-      Position		      [425, 60, 455, 90]
+      Position		      [525, 60, 555, 90]
       ZOrder		      -17
       ForegroundColor	      "orange"
       Gain		      "0.1*[-1, 1]"
@@ -1212,7 +1212,7 @@ Model {
       BlockType		      Gain
       Name		      "P_yaw"
       SID		      "38"
-      Position		      [375, 305, 405, 335]
+      Position		      [475, 305, 505, 335]
       ZOrder		      -18
       Gain		      "-100"
       ParamDataTypeStr	      "Inherit: Inherit via internal rule"
@@ -1223,7 +1223,7 @@ Model {
       BlockType		      Gain
       Name		      "P_z"
       SID		      "39"
-      Position		      [375, 435, 405, 465]
+      Position		      [475, 435, 505, 465]
       ZOrder		      -19
       ForegroundColor	      "red"
       Gain		      "-40"
@@ -1236,7 +1236,7 @@ Model {
       Name		      "Product"
       SID		      "89"
       Ports		      [2, 1]
-      Position		      [310, 49, 340, 96]
+      Position		      [410, 49, 440, 96]
       ZOrder		      -20
       ForegroundColor	      "green"
       ShowName		      off
@@ -1250,7 +1250,7 @@ Model {
       Name		      "RZ^T"
       SID		      "78"
       Ports		      [1, 1]
-      Position		      [195, 230, 255, 260]
+      Position		      [295, 230, 355, 260]
       ZOrder		      -23
       MATLABFcn		      "inv([cos(u) -sin(u); sin(u) cos(u)])"
       OutputDimensions	      "[2 2]"
@@ -1261,7 +1261,7 @@ Model {
       Name		      "Scope"
       SID		      "79"
       Ports		      [1]
-      Position		      [320, 374, 350, 406]
+      Position		      [420, 374, 450, 406]
       ZOrder		      -24
       Floating		      off
       Location		      [73, 568, 391, 804]
@@ -1292,7 +1292,7 @@ Model {
       Name		      "Sum1"
       SID		      "54"
       Ports		      [2, 1]
-      Position		      [255, 310, 275, 330]
+      Position		      [355, 310, 375, 330]
       ZOrder		      -25
       ShowName		      off
       IconShape		      "round"
@@ -1306,7 +1306,7 @@ Model {
       Name		      "Sum15"
       SID		      "55"
       Ports		      [2, 1]
-      Position		      [310, 440, 330, 460]
+      Position		      [410, 440, 430, 460]
       ZOrder		      -26
       ForegroundColor	      "red"
       ShowName		      off
@@ -1321,7 +1321,7 @@ Model {
       Name		      "Sum16"
       SID		      "56"
       Ports		      [2, 1]
-      Position		      [595, 65, 615, 85]
+      Position		      [695, 65, 715, 85]
       ZOrder		      -27
       ForegroundColor	      "blue"
       ShowName		      off
@@ -1336,7 +1336,7 @@ Model {
       Name		      "Sum17"
       SID		      "57"
       Ports		      [2, 1]
-      Position		      [220, 75, 240, 95]
+      Position		      [320, 75, 340, 95]
       ZOrder		      -28
       ForegroundColor	      "orange"
       ShowName		      off
@@ -1357,7 +1357,7 @@ Model {
       Name		      "Sum18"
       SID		      "58"
       Ports		      [2, 1]
-      Position		      [380, 65, 400, 85]
+      Position		      [480, 65, 500, 85]
       ZOrder		      -29
       ForegroundColor	      "orange"
       ShowName		      off
@@ -1372,7 +1372,7 @@ Model {
       Name		      "Sum19"
       SID		      "59"
       Ports		      [2, 1]
-      Position		      [520, 65, 540, 85]
+      Position		      [620, 65, 640, 85]
       ZOrder		      -30
       ForegroundColor	      "blue"
       ShowName		      off
@@ -1393,7 +1393,7 @@ Model {
       Name		      "Sum2"
       SID		      "60"
       Ports		      [2, 1]
-      Position		      [300, 310, 320, 330]
+      Position		      [400, 310, 420, 330]
       ZOrder		      -31
       ShowName		      off
       IconShape		      "round"
@@ -1407,7 +1407,7 @@ Model {
       Name		      "Sum3"
       SID		      "61"
       Ports		      [2, 1]
-      Position		      [255, 440, 275, 460]
+      Position		      [355, 440, 375, 460]
       ZOrder		      -32
       ForegroundColor	      "red"
       ShowName		      off
@@ -1422,7 +1422,7 @@ Model {
       Name		      "Sum4"
       SID		      "62"
       Ports		      [2, 1]
-      Position		      [450, 440, 470, 460]
+      Position		      [550, 440, 570, 460]
       ZOrder		      -33
       ForegroundColor	      "red"
       DropShadow	      on
@@ -1438,7 +1438,7 @@ Model {
       Name		      "To Workspace"
       SID		      "69"
       Ports		      [1]
-      Position		      [905, 420, 955, 450]
+      Position		      [1005, 420, 1055, 450]
       ZOrder		      -34
       ShowName		      off
       VariableName	      "result"
@@ -1450,7 +1450,7 @@ Model {
       Name		      "To Workspace1"
       SID		      "72"
       Ports		      [1]
-      Position		      [570, 460, 630, 490]
+      Position		      [670, 460, 730, 490]
       ZOrder		      -35
       ShowName		      off
       VariableName	      "T"
@@ -1462,7 +1462,7 @@ Model {
       Name		      "realsys"
       SID		      "137"
       Ports		      [1, 1]
-      Position		      [845, 155, 905, 185]
+      Position		      [945, 155, 1005, 185]
       ZOrder		      -5
       FunctionName	      "realsys"
       EnableBusSupport	      off
@@ -1471,7 +1471,7 @@ Model {
       BlockType		      Constant
       Name		      "w0"
       SID		      "63"
-      Position		      [415, 375, 445, 405]
+      Position		      [515, 375, 545, 405]
       ZOrder		      -36
       ForegroundColor	      "red"
       DropShadow	      on
@@ -1482,7 +1482,7 @@ Model {
       BlockType		      Constant
       Name		      "x"
       SID		      "116"
-      Position		      [25, 15, 55, 45]
+      Position		      [25, 14, 150, 46]
       ZOrder		      -4
       Value		      "0.0"
     }
@@ -1490,7 +1490,7 @@ Model {
       BlockType		      Constant
       Name		      "y"
       SID		      "117"
-      Position		      [25, 70, 55, 100]
+      Position		      [25, 70, 150, 100]
       ZOrder		      -4
       Value		      "0.0"
     }
@@ -1498,7 +1498,7 @@ Model {
       BlockType		      Constant
       Name		      "yaw"
       SID		      "118"
-      Position		      [25, 280, 55, 310]
+      Position		      [25, 182, 145, 218]
       ZOrder		      -4
       Value		      "0"
     }
@@ -1506,9 +1506,9 @@ Model {
       BlockType		      Constant
       Name		      "z"
       SID		      "119"
-      Position		      [25, 405, 55, 435]
+      Position		      [25, 118, 150, 152]
       ZOrder		      -4
-      Value		      "-6.0"
+      Value		      "0"
     }
     Line {
       SrcBlock		      "w0"
@@ -1532,14 +1532,14 @@ Model {
     Line {
       SrcBlock		      "x"
       SrcPort		      1
-      Points		      [0, -5]
+      Points		      [5, 0; 0, -5]
       DstBlock		      "Mux1"
       DstPort		      1
     }
     Line {
       SrcBlock		      "y"
       SrcPort		      1
-      Points		      [10, 0; 0, -40]
+      Points		      [15, 0; 0, -40]
       DstBlock		      "Mux1"
       DstPort		      2
     }
@@ -1667,7 +1667,7 @@ Model {
     Line {
       SrcBlock		      "z"
       SrcPort		      1
-      Points		      [205, 0]
+      Points		      [5, 0; 0, 290]
       DstBlock		      "Sum3"
       DstPort		      1
     }
@@ -1758,6 +1758,7 @@ Model {
     Line {
       SrcBlock		      "yaw"
       SrcPort		      1
+      Points		      [0, 95]
       DstBlock		      "Sum1"
       DstPort		      1
     }
@@ -1959,70 +1960,70 @@ Model {
     Annotation {
       SID		      "94"
       Name		      " "
-      Position		      [505, 35]
+      Position		      [605, 35]
     }
     Annotation {
       SID		      "95"
       Name		      "state vector"
-      Position		      [481, 518]
+      Position		      [581, 518]
     }
     Annotation {
       SID		      "96"
       Name		      "gravity feedforward"
-      Position		      [477, 470]
+      Position		      [577, 470]
     }
     Annotation {
       SID		      "97"
       Name		      "attitude rate\nloop"
-      Position		      [617, 130]
+      Position		      [717, 130]
       HorizontalAlignment     "left"
     }
     Annotation {
       SID		      "98"
       Name		      "attitude\nloop"
-      Position		      [539, 130]
+      Position		      [639, 130]
       HorizontalAlignment     "left"
     }
     Annotation {
       SID		      "99"
       Name		      "position rate\nloop"
-      Position		      [402, 125]
+      Position		      [502, 125]
       HorizontalAlignment     "left"
     }
     Annotation {
       SID		      "100"
       Name		      "position\nloop"
-      Position		      [257, 30]
+      Position		      [357, 30]
       HorizontalAlignment     "left"
     }
     Annotation {
       SID		      "101"
       Name		      "yaw rate\nloop"
-      Position		      [322, 360]
+      Position		      [422, 360]
       HorizontalAlignment     "left"
     }
     Annotation {
       SID		      "102"
       Name		      "yaw angle\nloop"
-      Position		      [277, 295]
+      Position		      [377, 295]
       HorizontalAlignment     "left"
     }
     Annotation {
       SID		      "103"
       Name		      "height rate\nloop"
-      Position		      [327, 465]
+      Position		      [427, 465]
       HorizontalAlignment     "left"
     }
     Annotation {
       SID		      "104"
       Name		      "height \nloop"
-      Position		      [277, 425]
+      Position		      [377, 425]
       HorizontalAlignment     "left"
     }
     Annotation {
       SID		      "105"
       Name		      "state"
-      Position		      [928, 120]
+      Position		      [1028, 120]
     }
   }
 }

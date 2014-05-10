@@ -47,7 +47,7 @@ class ControllerEmulator(val simulator: DroneSimulation[Emulator.Model],
     case EmergencyStop => simulator.setParam(_.gaz, 0d)
     case CancelEmergencyStop => ???
     case m@Move(_, roll, pitch, yaw, gaz) =>
-      log.info("ControllerEmulator: received move command: " + m)
+      log.debug("ControllerEmulator: received move command: " + m)
       simulator.setParam(_.roll, roll)
       simulator.setParam(_.pitch, pitch)
       simulator.setParam(_.yaw, yaw) // todo

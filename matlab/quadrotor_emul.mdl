@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.67"
+    ComputedModelVersion    "1.68"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -31,9 +31,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "fehu"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Thu May 08 21:06:39 2014"
-  RTWModifiedTimeStamp	  321483961
-  ModelVersionFormat	  "1.%<AutoIncrement:67>"
+  LastModifiedDate	  "Fri May 09 19:03:52 2014"
+  RTWModifiedTimeStamp	  321563030
+  ModelVersionFormat	  "1.%<AutoIncrement:68>"
   ConfigurationManager	  "None"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -872,7 +872,7 @@ Model {
       BlockType		      Constant
       Name		      "gaz"
       SID		      "146"
-      Position		      [25, 295, 55, 325]
+      Position		      [25, 294, 100, 326]
       ZOrder		      -4
       Value		      "0"
     }
@@ -880,7 +880,7 @@ Model {
       BlockType		      Constant
       Name		      "pitch"
       SID		      "144"
-      Position		      [25, 70, 55, 100]
+      Position		      [25, 69, 100, 101]
       ZOrder		      -4
       Value		      "0"
     }
@@ -888,7 +888,7 @@ Model {
       BlockType		      Constant
       Name		      "roll"
       SID		      "145"
-      Position		      [25, 145, 55, 175]
+      Position		      [25, 145, 100, 175]
       ZOrder		      -4
       Value		      "0"
     }
@@ -896,7 +896,7 @@ Model {
       BlockType		      Constant
       Name		      "yaw"
       SID		      "118"
-      Position		      [25, 220, 55, 250]
+      Position		      [25, 218, 100, 252]
       ZOrder		      -4
       Value		      "0"
     }

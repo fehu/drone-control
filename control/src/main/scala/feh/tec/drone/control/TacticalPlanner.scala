@@ -169,14 +169,13 @@ class StraightLineTacticalPlanner(val env: Environment,
   }
 
   def sendCommand() = {
-    log.info("called sendCommand")
+    log.debug("called sendCommand")
     command(navData) map {
       c =>
         log.info("Sending command to drone controller: " + c)
         controller ! c
     } onFailure{
       case err: Throwable =>
-        log.debug("failed to generate/send command " + err) // todo remove
         forwarder ! RunException(self, "failed to generate/send command", err)
     }
   }
@@ -191,17 +190,18 @@ class StraightLineTacticalPlanner(val env: Environment,
   /** what's next to do
     */
   def command = nav => {
-    log.info("next command requested from tactical planner")
+    log.debug("next command requested from tactical planner")
     if(destination.nonEmpty && isCloseToPoint(poseEstimation.position)){
 //      strategicPlanner ! WaypointReached(destination.get, System.currentTimeMillis())
       nextWaypoint()
+      log.info("setting next waypoint: " + destination)
       destination foreach (setControlDestination(_))
     }
 
     getControl(poseEstimation, nav).map (c =>
       DroneApiCommands.Move(MoveFlag.default, c.roll, c.pitch, c.yaw, c.gaz)
     ) map (_ $${
-      s => log.info("got control data from matlab: " + s)
+      s => log.debug("got control data from matlab: " + s)
     })
   }
 
